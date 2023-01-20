@@ -115,18 +115,6 @@ class BaseProcessFunctionTestSpec extends BaseSpec with Matchers {
 
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(bsConfig)
 
-    val eventStream =
-      env.addSource(kafkaConnector.kafkaEventSource[Event](bsConfig.kafkaEventInputTopic), "event-schema-consumer")
-      .process[Event](new TestEventStreamFunc(bsConfig)).name("TestTelemetryEventStream")
-
-    eventStream.getSideOutput(bsConfig.eventOutputTag)
-      .addSink(kafkaConnector.kafkaEventSink[Event](bsConfig.kafkaEventOutputTopic))
-      .name("Event-Producer")
-
-    eventStream.getSideOutput(bsConfig.duplicateEventOutputTag)
-      .addSink(kafkaConnector.kafkaEventSink[Event](bsConfig.kafkaEventDuplicateTopic))
-      .name("Duplicate-Event-Producer")
-
     val mapStream =
       env.addSource(kafkaConnector.kafkaMapSource(bsConfig.kafkaMapInputTopic), "map-event-consumer")
         .process(new TestMapStreamFunc(bsConfig)).name("TestMapEventStream")
@@ -149,29 +137,23 @@ class BaseProcessFunctionTestSpec extends BaseSpec with Matchers {
 
     // val test = consumeNumberMessagesFromTopics[String](topics = Set(bsConfig.kafkaEventOutputTopic), number = 2, timeout = 30.seconds).values.toList
     try {
-      val eventSchemaMessages = consumeNumberMessagesFrom[String](bsConfig.kafkaEventOutputTopic, 2)
-      val eventSchemaDuplicates = consumeNumberMessagesFrom[String](bsConfig.kafkaEventDuplicateTopic, 1)
       val mapSchemaMessages = consumeNumberMessagesFrom[String](bsConfig.kafkaMapOutputTopic, 1)
       val stringSchemaMessages = consumeNumberMessagesFrom[String](bsConfig.kafkaStringOutputTopic, 1)
 
-      eventSchemaMessages.size should be(2)
-      eventSchemaDuplicates.size should be(1)
       mapSchemaMessages.size should be(1)
       stringSchemaMessages.size should be(1)
 
       retrieveMid(mapSchemaMessages.head) should be("56c0c430-748b-11e8-ae77-cd19397ca6b0")
-      retrieveMid(eventSchemaDuplicates.head) should be("02ba33e5-15fe-4ec5-b32")
       retrieveMid(stringSchemaMessages.head) should be("02ba33e5-15fe-4ec5-b32")
-      retrieveMid(eventSchemaMessages.head) should be("02ba33e5-15fe-4ec5-b32")
-      retrieveMid(eventSchemaMessages.last) should be("LP.1586994119534.4bfe9b31-216d-46ea-8e60-d7ea1b1a103c")
+
     } catch {
         case ex: Exception => println("Error occurred when consuming events from Embedded Kafka...")
     }
 
-  }
+    def retrieveMid(message: String): String = {
+      gson.fromJson(message, new util.HashMap[String, AnyRef]().getClass).get("mid").asInstanceOf[String];
+    }
 
-  def retrieveMid(message: String): String = {
-    new Event(gson.fromJson(message, new util.HashMap[String, AnyRef]().getClass)).mid()
   }
 
 }

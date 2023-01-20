@@ -33,6 +33,11 @@
         </dependency>
         <dependency>
             <groupId>org.sunbird.obsrv</groupId>
+            <artifactId>dataset-registry</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.sunbird.obsrv</groupId>
             <artifactId>framework</artifactId>
             <version>1.0.0</version>
         </dependency>

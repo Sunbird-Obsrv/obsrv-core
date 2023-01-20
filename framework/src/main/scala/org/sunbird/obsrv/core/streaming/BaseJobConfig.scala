@@ -2,11 +2,11 @@ package org.sunbird.obsrv.core.streaming
 
 import java.util.Properties
 import java.io.Serializable
-
 import com.typesafe.config.Config
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
+import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.kafka.clients.consumer.ConsumerConfig
 
 class BaseJobConfig(val config: Config, val jobName: String) extends Serializable {
@@ -37,6 +37,11 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
 
   val metaRedisHost: String = Option(config.getString("redis-meta.host")).getOrElse("localhost")
   val metaRedisPort: Int = Option(config.getInt("redis-meta.port")).getOrElse(6379)
+
+  val systemEventCount = "system-event-count"
+  val kafkaSystemTopic: String = config.getString("kafka.output.system.event.topic")
+  val SYSTEM_EVENTS_OUTPUT_TAG = "system-events"
+  val systemEventsOutputTag: OutputTag[String] = OutputTag[String](SYSTEM_EVENTS_OUTPUT_TAG)
 
   // Checkpointing config
   val enableCompressedCheckpointing: Boolean = config.getBoolean("task.checkpointing.compressed")

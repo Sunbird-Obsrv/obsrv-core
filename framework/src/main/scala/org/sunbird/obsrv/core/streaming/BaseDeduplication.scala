@@ -1,21 +1,19 @@
 package org.sunbird.obsrv.core.streaming
 
-import java.util
-
 import com.google.gson.Gson
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.OutputTag
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.cache.DedupEngine
-import org.sunbird.obsrv.core.domain.Events
-import redis.clients.jedis.exceptions.JedisException
+import org.sunbird.obsrv.core.util.JSONUtil
+import org.sunbird.obsrv.core.exception.ObsrvException
+import org.sunbird.obsrv.core.model.{ErrorConstants, SystemConfig}
 
 trait BaseDeduplication {
 
   private[this] val logger = LoggerFactory.getLogger(classOf[BaseDeduplication])
   val uniqueEventMetricCount = "unique-event-count"
   val duplicateEventMetricCount = "duplicate-event-count"
-  private lazy val gson = new Gson()
 
   def deDup[T, R](key: String,
                   event: T,
@@ -28,7 +26,7 @@ trait BaseDeduplication {
     if (null != key && !deDupEngine.isUniqueEvent(key)) {
       logger.debug(s"Event with mid: $key is duplicate")
       metrics.incCounter(duplicateEventMetricCount)
-      context.output(duplicateOutputTag, updateFlag[T, R](event, flagName, value = true))
+      context.output(duplicateOutputTag, event.asInstanceOf[R])
     } else {
       if (key != null) {
         logger.debug(s"Adding mid: $key to Redis")
@@ -36,48 +34,40 @@ trait BaseDeduplication {
       }
       metrics.incCounter(uniqueEventMetricCount)
       logger.debug(s"Pushing the event with mid: $key for further processing")
-      context.output(successOutputTag, updateFlag[T, R](event, flagName, value = false))
+      context.output(successOutputTag, event.asInstanceOf[R])
     }
   }
 
-  def deDuplicate[T, R](key: String,
-                  event: T,
-                  context: ProcessFunction[T, R]#Context,
-                  duplicateOutputTag: OutputTag[R],
-                  flagName: String
-                 )(implicit deDupEngine: DedupEngine, metrics: Metrics): Boolean = {
+  def isDuplicate(dedupKey: Option[String], event: String)(implicit deDupEngine: DedupEngine): Boolean = {
 
-    val isUniqueEvent = null != key && deDupEngine.isUniqueEvent(key)
-
-    if (!isUniqueEvent) {
-      logger.debug(s"Event with mid: $key is duplicate")
-      metrics.incCounter(duplicateEventMetricCount)
-      context.output(duplicateOutputTag, updateFlag[T, R](event, flagName, value = true))
-    } else {
-      if (key != null) {
-        logger.debug(s"Adding mid: $key to Redis")
+    try {
+      val key = getDedupKey(dedupKey, event);
+      if (!deDupEngine.isUniqueEvent(key)) {
+        logger.debug(s"Event with mid: $key is duplicate")
+        true
+      } else {
         deDupEngine.storeChecksum(key)
+        false
       }
-      metrics.incCounter(uniqueEventMetricCount)
-      logger.debug(s"Pushing the event with mid: $key for further processing")
+    } catch {
+      case ex: ObsrvException =>
+        // TODO: Create System event of failed deduplication. Skip dedup check
+        false
     }
-    isUniqueEvent
   }
 
-  def updateFlag[T, R](event: T, flagName: String, value: Boolean): R = {
-    val flags: util.HashMap[String, Boolean] = new util.HashMap[String, Boolean]()
-    flags.put(flagName, value)
-    if (event.isInstanceOf[Events]) {
-      event.asInstanceOf[Events].updateFlags(flagName, value)
-      event.asInstanceOf[R]
-    } else if (event.isInstanceOf[String]) {
-      val eventMap = gson.fromJson(event.toString, new util.LinkedHashMap[String, AnyRef]().getClass).asInstanceOf[util.Map[String, AnyRef]]
-      eventMap.put("flags", flags.asInstanceOf[util.HashMap[String, AnyRef]])
-      eventMap.asInstanceOf[R]
-    } else {
-      event.asInstanceOf[util.Map[String, AnyRef]].put("flags", flags.asInstanceOf[util.HashMap[String, AnyRef]])
-      event.asInstanceOf[R]
+  private def getDedupKey(dedupKey: Option[String], event: String): String = {
+    if (!dedupKey.isDefined) {
+      throw new ObsrvException(ErrorConstants.NO_DEDUP_KEY_FOUND);
     }
+    val node = JSONUtil.getKey(dedupKey.get, event);
+    if (node.isMissingNode) {
+      throw new ObsrvException(ErrorConstants.NO_DEDUP_KEY_FOUND);
+    }
+    if(!node.isTextual) {
+      throw new ObsrvException(ErrorConstants.DEDUP_KEY_NOT_A_STRING);
+    }
+    node.asText()
   }
 
   def deduplicationMetrics: List[String] = {

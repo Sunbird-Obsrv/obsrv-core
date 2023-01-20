@@ -1,7 +1,6 @@
 package org.sunbird.obsrv.extractor.task
 
 import java.io.File
-import java.util
 import com.typesafe.config.ConfigFactory
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
@@ -9,7 +8,9 @@ import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
 import org.sunbird.obsrv.core.util.FlinkUtil
-import org.sunbird.obsrv.extractor.functions.{DeduplicationFunction, ExtractionFunction, RedactorFunction}
+import org.sunbird.obsrv.extractor.functions.ExtractionFunction
+
+import scala.collection.mutable
 
 /**
  * Extraction stream task does the following pipeline processing in a sequence:
@@ -40,82 +41,59 @@ import org.sunbird.obsrv.extractor.functions.{DeduplicationFunction, ExtractionF
  *     2.3 Send it to raw-events output tag
  * 3. raw-events are pushed to telemetry.raw topic and assess-raw-events are pushed to telemetry.assess.raw topic
  */
-class TelemetryExtractorStreamTask(config: TelemetryExtractorConfig, kafkaConnector: FlinkKafkaConnector) {
+class ExtractorStreamTask(config: ExtractorConfig, kafkaConnector: FlinkKafkaConnector) {
 
   private val serialVersionUID = -7729362727131516112L
 
   def process(): Unit = {
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
-    implicit val mapTypeInfo: TypeInformation[util.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[util.Map[String, AnyRef]])
+    implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
     implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
-    /**
-     * Invoke De-Duplication - Filter all duplicate batch events from the mobile app.
-     * 1. Push all duplicate events to duplicate topic.
-     * 2. Push all unique events to unique topic.
-     */
-    val deDupStream =
-      env.addSource(kafkaConnector.kafkaStringSource(config.kafkaInputTopic), config.telemetryExtractorConsumer)
-        .uid(config.telemetryExtractorConsumer).setParallelism(config.kafkaConsumerParallelism)
-        .rebalance()
-        .process(new DeduplicationFunction(config))
-        .name("ExtractorDeduplicationFn").uid("ExtractorDeduplicationFn")
-        .setParallelism(config.downstreamOperatorsParallelism)
     /**
      * After - De-Duplication process.
      *  1. Extract the batch events.
      *  2. Generate Audit events (To know the number of events in the per batch)
      */
+
     val extractionStream =
-      deDupStream.getSideOutput(config.uniqueEventOutputTag)
+      env.addSource(kafkaConnector.kafkaMapSource(config.kafkaInputTopic), config.extractorConsumer)
+        .uid(config.extractorConsumer).setParallelism(config.kafkaConsumerParallelism)
+        .rebalance()
         .process(new ExtractionFunction(config))
         .name(config.extractionFunction).uid(config.extractionFunction)
         .setParallelism(config.downstreamOperatorsParallelism)
 
-    val redactorStream =
-      extractionStream.getSideOutput(config.assessRedactEventsOutputTag)
-        .process(new RedactorFunction(config)).name(config.redactorFunction).uid(config.redactorFunction)
-        .setParallelism(config.downstreamOperatorsParallelism)
-
-    deDupStream.getSideOutput(config.duplicateEventOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaDuplicateTopic))
-      .name(config.extractorDuplicateProducer).uid(config.extractorDuplicateProducer).setParallelism(config.downstreamOperatorsParallelism)
-
-    deDupStream.getSideOutput(config.failedBatchEventOutputTag).addSink(kafkaConnector.kafkaStringSink(config.kafkaBatchFailedTopic))
+    extractionStream.getSideOutput(config.failedBatchEventOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaBatchFailedTopic))
       .name(config.extractorBatchFailedEventsProducer).uid(config.extractorBatchFailedEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
     extractionStream.getSideOutput(config.rawEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaSuccessTopic))
       .name(config.extractorRawEventsProducer).uid(config.extractorRawEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    extractionStream.getSideOutput(config.logEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaLogRouteTopic))
-      .name(config.extractorLogEventsProducer).uid(config.extractorLogEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
+    extractionStream.getSideOutput(config.duplicateEventOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaDuplicateTopic))
+      .name(config.extractorDuplicateProducer).uid(config.extractorDuplicateProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    extractionStream.getSideOutput(config.auditEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(config.kafkaLogRouteTopic))
-      .name(config.extractorAuditEventsProducer).uid(config.extractorAuditEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
+    extractionStream.getSideOutput(config.systemEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(config.kafkaSystemTopic))
+      .name(config.extractorSystemEventsProducer).uid(config.extractorSystemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
     extractionStream.getSideOutput(config.failedEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaFailedTopic))
       .name(config.extractorFailedEventsProducer).uid(config.extractorFailedEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
-
-    redactorStream.getSideOutput(config.rawEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaSuccessTopic))
-      .name(config.assessEventsProducer).uid(config.assessEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
-
-    redactorStream.getSideOutput(config.assessRawEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaAssessRawTopic))
-      .name(config.assessRawEventsProducer).uid(config.assessRawEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
     env.execute(config.jobName)
   }
 }
 
 // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked within flink cluster
-object TelemetryExtractorStreamTask {
+object ExtractorStreamTask {
 
   def main(args: Array[String]): Unit = {
     val configFilePath = Option(ParameterTool.fromArgs(args).get("config.file.path"))
     val config = configFilePath.map {
       path => ConfigFactory.parseFile(new File(path)).resolve()
-    }.getOrElse(ConfigFactory.load("telemetry-extractor.conf").withFallback(ConfigFactory.systemEnvironment()))
-    val telemetryExtractorConfig = new TelemetryExtractorConfig(config)
-    val kafkaUtil = new FlinkKafkaConnector(telemetryExtractorConfig)
-    val task = new TelemetryExtractorStreamTask(telemetryExtractorConfig, kafkaUtil)
+    }.getOrElse(ConfigFactory.load("extractor.conf").withFallback(ConfigFactory.systemEnvironment()))
+    val extractorConfig = new ExtractorConfig(config)
+    val kafkaUtil = new FlinkKafkaConnector(extractorConfig)
+    val task = new ExtractorStreamTask(extractorConfig, kafkaUtil)
     task.process()
   }
 }

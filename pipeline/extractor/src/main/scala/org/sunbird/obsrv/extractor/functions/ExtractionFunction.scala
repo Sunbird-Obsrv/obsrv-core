@@ -1,66 +1,111 @@
 package org.sunbird.obsrv.extractor.functions
 
-import java.lang.reflect.Type
-import java.util
-import java.util.UUID
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
-import org.joda.time.format.DateTimeFormat
-import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics}
+import org.sunbird.obsrv.core.cache.{DedupEngine, RedisConnect}
+import org.sunbird.obsrv.core.exception.ObsrvException
+import org.sunbird.obsrv.core.model.ErrorConstants
+import org.sunbird.obsrv.core.model.ErrorConstants.Error
+import org.sunbird.obsrv.core.model.Models.SystemEvent
+import org.sunbird.obsrv.core.streaming.{BaseDeduplication, BaseProcessFunction, Metrics}
 import org.sunbird.obsrv.core.util.JSONUtil
-import org.sunbird.obsrv.extractor.domain._
-import org.sunbird.obsrv.extractor.task.TelemetryExtractorConfig
+import org.sunbird.obsrv.extractor.task.ExtractorConfig
+import org.sunbird.obsrv.model.DatasetModels.Dataset
+import org.sunbird.obsrv.registry.DatasetRegistry
 
-class ExtractionFunction(config: TelemetryExtractorConfig)(implicit val stringTypeInfo: TypeInformation[String])
-  extends BaseProcessFunction[util.Map[String, AnyRef], util.Map[String, AnyRef]](config) {
+import java.lang.reflect.Type
+import scala.collection.mutable
 
-  val mapType: Type = new TypeToken[util.Map[String, AnyRef]]() {}.getType
+class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: DedupEngine = null)(implicit val stringTypeInfo: TypeInformation[String])
+  extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) with BaseDeduplication {
+
+  val mapType: Type = new TypeToken[mutable.Map[String, AnyRef]]() {}.getType
+
+  val gson = new Gson()
 
   override def metricsList(): List[String] = {
-    List(config.successEventCount, config.auditEventCount, config.failedEventCount)
+    List(config.successEventCount, config.systemEventCount, config.failedEventCount, config.skippedExtractionCount, config.duplicateExtractionCount)
   }
 
+  override def open(parameters: Configuration): Unit = {
+    super.open(parameters)
+    if (dedupEngine == null) {
+      val redisConnect = new RedisConnect(config.redisHost, config.redisPort, config)
+      dedupEngine = new DedupEngine(redisConnect, config.dedupStore, config.cacheExpiryInSeconds)
+    }
+  }
 
   /**
    * Method to process the events extraction from the batch
    *
-   * @param batchEvent - Batch of telemetry events
+   * @param batchEvent - Batch of extractable events
    * @param context
    */
-  override def processElement(batchEvent: util.Map[String, AnyRef],
-                              context: ProcessFunction[util.Map[String, AnyRef], util.Map[String, AnyRef]]#Context,
+  override def processElement(batchEvent: mutable.Map[String, AnyRef],
+                              context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
-    val gson = new Gson()
-    val eventsList = getEventsList(batchEvent)
-    val syncTs = Option(batchEvent.get("syncts")).getOrElse(System.currentTimeMillis()).asInstanceOf[Number].longValue()
-    eventsList.forEach(event => {
-      val eventId = event.get("eid").asInstanceOf[String]
-      val eventData = updateEvent(event, syncTs)
-      val eventJson = JSONUtil.serialize(eventData)
-      val eventSize = eventJson.getBytes("UTF-8").length
-      if (eventSize > config.eventMaxSize) {
-        metrics.incCounter(config.failedEventCount)
-        context.output(config.failedEventsOutputTag, markFailed(eventData))
-      } else {
-        metrics.incCounter(config.successEventCount)
-        if (config.redactEventsList.contains(eventId)) {
-          context.output(config.assessRedactEventsOutputTag, markSuccess(eventData))
-        } else if ("LOG".equalsIgnoreCase(eventId)) {
-          context.output(config.logEventsOutputTag, markSuccess(eventData))
-        } else {
-          context.output(config.rawEventsOutputTag, markSuccess(eventData))
+
+    val datasetId = batchEvent.get("dataset");
+    if(datasetId.isEmpty) {
+      markBatchFailed(batchEvent, ErrorConstants.MISSING_DATASET_ID);
+      context.output(config.failedBatchEventOutputTag, batchEvent)
+      metrics.incCounter(config.failedExtractionCount)
+      return;
+    }
+    val dataset = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
+    val eventAsText = JSONUtil.serialize(batchEvent)
+    if(dataset.extractionConfig.isDefined && dataset.extractionConfig.get.isBatchEvent.get) {
+      if(dataset.extractionConfig.get.dedupConfig.isDefined && dataset.extractionConfig.get.dedupConfig.get.dropDuplicates.get) {
+        val isDup = isDuplicate(dataset.extractionConfig.get.dedupConfig.get.dedupKey, eventAsText)(dedupEngine)
+        if(isDup) {
+          metrics.incCounter(config.duplicateExtractionCount);
+          context.output(config.duplicateEventOutputTag, markBatchFailed(batchEvent, ErrorConstants.DUPLICATE_BATCH_EVENT_FOUND))
+          return
         }
       }
-    })
+      extractData(dataset, batchEvent, eventAsText, context, metrics);
+    } else {
+      context.output(config.rawEventsOutputTag, markSkipped(dataset.id, batchEvent))
+      metrics.incCounter(config.skippedExtractionCount)
+    }
+  }
 
-    /**
-     * Generating Audit events to compute the number of events in the batch.
-     */
-    // context.output(config.logEventsOutputTag, gson.fromJson(gson.toJson(generateAuditEvents(eventsList.size(), batchEvent)), mapType))
-    context.output(config.auditEventsOutputTag, gson.toJson(generateAuditEvents(eventsList.size(), batchEvent)))
-    metrics.incCounter(config.auditEventCount)
+  def getMutableEvent(immutableMap: Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+    val mutableMap = mutable.Map[String, AnyRef]();
+    mutableMap ++= immutableMap;
+    mutableMap
+  }
+
+  def extractData(dataset: Dataset, batchEvent: mutable.Map[String, AnyRef], eventAsText: String, context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
+                  metrics: Metrics): Unit = {
+    try {
+      val eventsList = getEventsList(dataset, eventAsText);
+      val syncTs = Option(batchEvent.get("syncts")).getOrElse(System.currentTimeMillis()).asInstanceOf[Number].longValue()
+      eventsList.map(immutableEvent => {
+        val eventData = getMutableEvent(immutableEvent);
+        updateEvent(eventData, syncTs)
+        val eventJson = JSONUtil.serialize(eventData)
+        val eventSize = eventJson.getBytes("UTF-8").length
+        if (eventSize > config.eventMaxSize) {
+          metrics.incCounter(config.failedEventCount)
+          context.output(config.failedEventsOutputTag, markFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED))
+        } else {
+          metrics.incCounter(config.successEventCount)
+          context.output(config.rawEventsOutputTag, markSuccess(dataset.id, eventData))
+        }
+      })
+      context.output(config.systemEventsOutputTag, gson.toJson(generateSystemEvent(eventsList.size, batchEvent)))
+      metrics.incCounter(config.systemEventCount)
+      metrics.incCounter(config.successExtractionCount);
+    } catch {
+      case ex: ObsrvException =>
+        markBatchFailed(batchEvent, ex.error);
+        context.output(config.failedBatchEventOutputTag, batchEvent)
+        metrics.incCounter(config.failedExtractionCount)
+    }
 
   }
 
@@ -70,8 +115,15 @@ class ExtractionFunction(config: TelemetryExtractorConfig)(implicit val stringTy
    * @param batchEvent - Batch of telemetry event.
    * @return Array[AnyRef] - List of telemetry events.
    */
-  def getEventsList(batchEvent: util.Map[String, AnyRef]): util.ArrayList[util.Map[String, AnyRef]] = {
-    Option(batchEvent.get("events")).getOrElse(new util.ArrayList[Any]).asInstanceOf[util.ArrayList[util.Map[String, AnyRef]]]
+  def getEventsList(dataset:Dataset, eventAsText: String): List[Map[String, AnyRef]] = {
+    val node = JSONUtil.getKey(dataset.extractionConfig.get.extractionKey.get, eventAsText);
+    if(node.isMissingNode) {
+      throw new ObsrvException(ErrorConstants.NO_EXTRACTION_DATA_FOUND)
+    } else if(!node.isArray) {
+      throw new ObsrvException(ErrorConstants.EXTRACTED_DATA_NOT_A_LIST)
+    } else {
+      JSONUtil.deserialize[List[Map[String, AnyRef]]](node.toString); // TODO: Check if this is the better way to get JsonNode data
+    }
   }
 
   /**
@@ -81,45 +133,30 @@ class ExtractionFunction(config: TelemetryExtractorConfig)(implicit val stringTy
    * @param syncts - sync timestamp epoch to be updated in the events
    * @return - util.Map[String, AnyRef] Updated Telemetry Event
    */
-  def updateEvent(event: util.Map[String, AnyRef], syncts: Long): util.Map[String, AnyRef] = {
-    val timeStampString: String = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").withZoneUTC.print(syncts)
+  def updateEvent(event: mutable.Map[String, AnyRef], syncts: Long) = {
     event.put("syncts", syncts.asInstanceOf[AnyRef])
-    event.put("@timestamp", timeStampString.asInstanceOf[AnyRef])
-    event
   }
 
   /**
-   * Method to Generate the LOG Event to Determine the Number of events has extracted.
+   * Method to Generate a System Event to capture the extraction information and metrics
    */
-  def generateAuditEvents(totalEvents: Int, batchEvent: util.Map[String, AnyRef]): LogEvent = {
-    LogEvent(
-      actor = Actor("sunbird.telemetry", "telemetry-sync"),
-      eid = "LOG",
-      edata = EData(level = "INFO", "telemetry_audit", message = "telemetry sync", Array(Params("3.0", totalEvents, "SUCCESS"))),
-      syncts = System.currentTimeMillis(),
-      ets = System.currentTimeMillis(),
-      context = EventContext(channel = Option(batchEvent.get("channel")).getOrElse("in.sunbird").toString, env = "data-pipeline",
-        sid = UUID.randomUUID().toString,
-        did = Option(getValuesFromParams(batchEvent, "did")).getOrElse(UUID.randomUUID()).toString,
-        pdata = Pdata(ver = "3.0", pid = "telemetry-extractor"),
-        cdata = null),
-      mid = Option(batchEvent.get("mid")).getOrElse(UUID.randomUUID()).toString,
-      `object` = Object(UUID.randomUUID().toString, "3.0", "telemetry-events", None),
-      tags = null)
+  def generateSystemEvent(totalEvents: Int, batchEvent: mutable.Map[String, AnyRef]): SystemEvent = {
+    SystemEvent(); // TODO: Generate a system event
   }
 
   /**
    * Method Mark the event as failure by adding (ex_processed -> false) and metadata.
    */
-  def markFailed(event: util.Map[String, AnyRef]): util.Map[String, AnyRef] = {
-    val flags: util.HashMap[String, Boolean] = new util.HashMap[String, Boolean]()
-    flags.put("ex_processed", false)
-    val metaData: util.HashMap[String, AnyRef] = new util.HashMap[String, AnyRef]()
-    metaData.put("src", config.jobName)
-    metaData.put("ex_error", "Event size is Exceeded")
-    event.asInstanceOf[util.Map[String, AnyRef]].put("metadata", metaData.asInstanceOf[util.Map[String, AnyRef]])
-    event.asInstanceOf[util.Map[String, AnyRef]].put("flags", flags.asInstanceOf[util.Map[String, AnyRef]])
-    event
+  def markFailed(dataset: String, event: mutable.Map[String, AnyRef], error: Error):mutable.Map[String, AnyRef] = {
+    addError(event, Map("src" -> config.jobName, "error_code" -> error.errorCode, "error_msg" -> error.errorMsg))
+    addFlags(event, Map("extraction_processed" -> "no"));
+    createWrapperEvent(dataset, event);
+  }
+
+  def markBatchFailed(batchEvent: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
+    addFlags(batchEvent, Map("extraction_processed" -> "no"))
+    addError(batchEvent, Map("src" -> config.jobName, "error_code" -> error.errorCode, "extraction_error" -> error.errorMsg))
+    batchEvent
   }
 
   /**
@@ -128,19 +165,34 @@ class ExtractionFunction(config: TelemetryExtractorConfig)(implicit val stringTy
    * @param event
    * @return
    */
-  def markSuccess(event: util.Map[String, AnyRef]): util.Map[String, AnyRef] = {
-    val flags: util.HashMap[String, Boolean] = new util.HashMap[String, Boolean]()
-    flags.put("ex_processed", true)
-    event.put("flags", flags.asInstanceOf[util.Map[String, AnyRef]])
-    event
+  def markSuccess(dataset:String, event: mutable.Map[String, AnyRef]):mutable.Map[String, AnyRef] = {
+    addFlags(event, Map("extraction_processed" -> "yes"))
+    createWrapperEvent(dataset, event);
   }
 
-  def getValuesFromParams(batchEvents: util.Map[String, AnyRef], key: String): String = {
-    val paramsObj = Option(batchEvents.get("params"))
-    val messageId = paramsObj.map {
-      params => params.asInstanceOf[util.Map[String, AnyRef]].get(key).asInstanceOf[String]
+  def markSkipped(dataset: String, event: mutable.Map[String, AnyRef]):mutable.Map[String, AnyRef] = {
+    addFlags(event, Map("extraction_processed" -> "skipped"))
+    createWrapperEvent(dataset, event);
+  }
+
+  def addFlags(event: mutable.Map[String, AnyRef], flags: Map[String, AnyRef]) = {
+    if(event.get("obsrv_sys_flags").isDefined) {
+      event.put("obsrv_sys_flags", (event.get("obsrv_sys_flags").getOrElse(Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]] ++ flags))
+    } else {
+      event.put("obsrv_sys_flags", flags)
     }
-    messageId.orNull
+  }
+
+  def addError(event: mutable.Map[String, AnyRef], error: Map[String, AnyRef]) = {
+    if (event.get("obsrv_process_error").isDefined) {
+      event.put("obsrv_process_error", (event.get("obsrv_process_error").getOrElse(Map[String, AnyRef]()).asInstanceOf[Map[String, AnyRef]] ++ error))
+    } else {
+      event.put("obsrv_process_error", error)
+    }
+  }
+
+  def createWrapperEvent(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+    mutable.Map("dataset" -> dataset, "event" -> event)
   }
 }
 

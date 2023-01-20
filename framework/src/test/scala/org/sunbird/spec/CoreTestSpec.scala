@@ -11,11 +11,12 @@ import org.scalatest.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import org.sunbird.fixture.EventFixture
 import org.sunbird.obsrv.core.cache.{DataCache, DedupEngine, RedisConnect}
-import org.sunbird.obsrv.core.domain.Events
 import org.sunbird.obsrv.core.serde._
 import redis.clients.jedis.exceptions.{JedisDataException, JedisException}
 import org.sunbird.obsrv.core.streaming.{BaseDeduplication, BaseJobConfig}
 import org.sunbird.obsrv.core.util.{FlinkUtil, RestUtil}
+
+import scala.collection.mutable
 
 class CoreTestSpec extends BaseSpec with Matchers with MockitoSugar {
 
@@ -75,7 +76,6 @@ class CoreTestSpec extends BaseSpec with Matchers with MockitoSugar {
     val event = new util.HashMap[String, AnyRef]()
     event.put("country_code", "IN")
     event.put("country", "INDIA")
-    deDup.updateFlag[util.Map[String, AnyRef], util.Map[String, AnyRef]](event, "test-failed", true)
     val redisConnection = new RedisConnect(baseConfig.redisHost, baseConfig.redisPort, baseConfig)
     val dedupEngine = new DedupEngine(redisConnection, 2, 200)
     dedupEngine.storeChecksum("key-1")
@@ -93,21 +93,15 @@ class CoreTestSpec extends BaseSpec with Matchers with MockitoSugar {
     val value: Array[Byte] = Array[Byte](1)
     val stringDeSerialization = new StringDeserializationSchema()
     val stringSerialization = new StringSerializationSchema(topic, Some("kafka-key"))
-    val eventSerialization = new EventSerializationSchema[Events](topic)
-    val eventDeSerialization = new EventDeserializationSchema[Events]
     val mapSerialization: MapSerializationSchema = new MapSerializationSchema(topic, Some("kafka-key"))
     val mapDeSerialization = new MapDeserializationSchema()
     import org.apache.kafka.clients.consumer.ConsumerRecord
     val cRecord: ConsumerRecord[Array[Byte], Array[Byte]] = new ConsumerRecord[Array[Byte], Array[Byte]](topic, partition, offset, key, value)
     stringDeSerialization.deserialize(cRecord)
-    val event = new Event(new Gson().fromJson(EventFixture.SAMPLE_EVENT_1, new util.LinkedHashMap[String, AnyRef]().getClass))
-    eventSerialization.serialize(event, System.currentTimeMillis())
-    eventDeSerialization.getProducedType
+
     stringSerialization.serialize("test", System.currentTimeMillis())
     stringDeSerialization.isEndOfStream("") should be(false)
-    val map = new util.HashMap[String, AnyRef]()
-    map.put("country_code", "IN")
-    map.put("country", "INDIA")
+    val map = mutable.Map[String, AnyRef]("country_code" -> "IN", "country" -> "INDIA");
     mapSerialization.serialize(map, System.currentTimeMillis())
   }
 
@@ -166,16 +160,4 @@ class CoreTestSpec extends BaseSpec with Matchers with MockitoSugar {
     context should not be (null)
   }
 
-}
-
-class Event(eventMap: util.Map[String, Any]) extends Events(eventMap) {
-  def markSuccess(flagName: String): Unit = {
-    telemetry.addFieldIfAbsent("flags", new util.HashMap[String, Boolean])
-    telemetry.add(s"flags.$flagName", true)
-    telemetry.add("type", "events")
-  }
-
-  override def kafkaKey(): String = {
-    super.kafkaKey()
-  }
 }
