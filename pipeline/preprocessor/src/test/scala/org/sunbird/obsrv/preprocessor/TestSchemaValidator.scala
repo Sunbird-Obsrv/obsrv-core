@@ -3,7 +3,6 @@ package org.sunbird.obsrv.preprocessor
 import com.google.gson.Gson
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{FlatSpec, Matchers}
-import org.sunbird.obsrv.preprocessor.domain.Event
 import org.sunbird.obsrv.preprocessor.fixture.EventFixtures
 import org.sunbird.obsrv.preprocessor.task.PipelinePreprocessorConfig
 import org.sunbird.obsrv.preprocessor.util.SchemaValidator
@@ -68,13 +67,6 @@ class TestSchemaValidator extends FlatSpec with Matchers {
 
     val outErrMsg3 = schemaValidator.getInvalidFieldName(errMsgWithoutPointer)
     outErrMsg3 should be("Unable to obtain field name for failed validation")
-  }
-
-  it should "get the default envelope.json shcema when eid is not present and it should get the valid kafka id" in {
-    val gson = new Gson()
-    val event = new Event(gson.fromJson(EventFixtures.EVENT_WITHOUT_EID, new java.util.LinkedHashMap[String, Any]().getClass))
-    event.schemaName should be ("envelope.json")
-    event.kafkaKey() should be("1b17c32bad61eb9e33df281eecc727590d739b2b")
   }
 
 }

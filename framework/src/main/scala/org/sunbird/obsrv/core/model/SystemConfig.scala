@@ -5,5 +5,6 @@ object SystemConfig {
   // TODO: Fetch the system config from postgres db
   val defaultDedupPeriodInSeconds: Int = 604800 // 7 days
   val maxEventSize: Long = 1
+  val defaultDatasetId = "ALL"
 
 }

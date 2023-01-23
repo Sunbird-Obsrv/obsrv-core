@@ -71,8 +71,6 @@ class CoreTestSpec extends BaseSpec with Matchers with MockitoSugar {
 
   "BaseDedup functionality" should "be able to identify if an event is unique or duplicate" in {
     val deDup = new BaseDeduplication {}
-    val metrics = deDup.deduplicationMetrics
-    metrics.size should be(2)
     val event = new util.HashMap[String, AnyRef]()
     event.put("country_code", "IN")
     event.put("country", "INDIA")

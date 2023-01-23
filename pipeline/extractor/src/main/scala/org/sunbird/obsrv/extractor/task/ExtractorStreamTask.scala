@@ -74,7 +74,7 @@ class ExtractorStreamTask(config: ExtractorConfig, kafkaConnector: FlinkKafkaCon
       .name(config.extractorDuplicateProducer).uid(config.extractorDuplicateProducer).setParallelism(config.downstreamOperatorsParallelism)
 
     extractionStream.getSideOutput(config.systemEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(config.kafkaSystemTopic))
-      .name(config.extractorSystemEventsProducer).uid(config.extractorSystemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
+      .name(config.systemEventsProducer).uid(config.systemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
     extractionStream.getSideOutput(config.failedEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaFailedTopic))
       .name(config.extractorFailedEventsProducer).uid(config.extractorFailedEventsProducer).setParallelism(config.downstreamOperatorsParallelism)

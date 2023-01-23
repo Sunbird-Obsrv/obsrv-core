@@ -57,6 +57,5 @@ class ExtractorConfig(override val config: Config) extends BaseJobConfig(config,
   val extractorDuplicateProducer = "extractor-duplicate-events-sink"
   val extractorBatchFailedEventsProducer = "extractor-batch-failed-events-sink"
   val extractorRawEventsProducer = "extractor-raw-events-sink"
-  val extractorSystemEventsProducer = "extractor-system-events-sink"
   val extractorFailedEventsProducer = "extractor-failed-events-sink"
 }

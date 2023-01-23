@@ -8,9 +8,9 @@ object DatasetModels {
 
   case class DedupConfig(val dropDuplicates: Option[Boolean]=Some(false), val dedupKey: Option[String], val dedupPeriod: Option[Integer] = Some(SystemConfig.defaultDedupPeriodInSeconds))
 
-  case class ValidationConfig(val validation: Option[Boolean]=Some(true), val mode: Option[ValidationMode])
+  case class ValidationConfig(val validate: Option[Boolean]=Some(true), val mode: Option[ValidationMode])
 
-  case class Dataset(val id: String, val schema: String, val extractionConfig: Option[ExtractionConfig], val dedupConfig: Option[DedupConfig], val validationConfig: Option[ValidationConfig]);
+  case class Dataset(val id: String, val schema: String, val extractionConfig: Option[ExtractionConfig], val dedupConfig: Option[DedupConfig], val validationConfig: Option[ValidationConfig], val jsonSchema: Option[String]);
 
 }
 

@@ -1,16 +1,15 @@
 package org.sunbird.obsrv.preprocessor.util
 
-import java.io.{File, IOException}
-import java.nio.charset.StandardCharsets
-import java.nio.file._
+import java.io.IOException
 import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.github.fge.jackson.JsonLoader
 import com.github.fge.jsonschema.core.exceptions.ProcessingException
 import com.github.fge.jsonschema.core.report.ProcessingReport
 import com.github.fge.jsonschema.main.{JsonSchema, JsonSchemaFactory}
-import io.github.classgraph.{ClassGraph, Resource}
 import org.slf4j.LoggerFactory
-import org.sunbird.obsrv.preprocessor.domain.Event
+import org.sunbird.obsrv.core.exception.ObsrvException
+import org.sunbird.obsrv.core.model.ErrorConstants
+import org.sunbird.obsrv.model.DatasetModels.Dataset
 import org.sunbird.obsrv.preprocessor.task.PipelinePreprocessorConfig
 
 import scala.collection.mutable
@@ -20,41 +19,37 @@ class SchemaValidator(config: PipelinePreprocessorConfig) extends java.io.Serial
   private val serialVersionUID = 8780940932759659175L
   private[this] val logger = LoggerFactory.getLogger(classOf[SchemaValidator])
   private[this] val objectMapper = new ObjectMapper()
+  private[this] val schemaMap = mutable.Map[String, JsonSchema]()
 
-  logger.info("Initializing schema for telemetry objects...")
-
-  private val schemaJsonMap: Map[String, JsonSchema] = {
-    readResourceFiles(s"${config.schemaPath}")
-  }
-
-  def readResourceFiles(schemaUrl: String): Map[String, JsonSchema] = {
-    val classGraphResult = new ClassGraph().acceptPaths(schemaUrl).scan()
+  private def loadJsonSchema(datasetId: String, jsonSchemaStr: String) = {
     val schemaFactory = JsonSchemaFactory.byDefault
-    val schemaMap = new mutable.HashMap[String, JsonSchema]()
     try {
-      val resources = classGraphResult.getResourcesWithExtension("json")
-      resources.forEachByteArrayIgnoringIOException((res: Resource, content: Array[Byte]) => {
-        schemaMap += Paths.get(res.getPath).getFileName.toString -> schemaFactory.getJsonSchema(JsonLoader.fromString(new String(content, StandardCharsets.UTF_8)))
-      })
+      val jsonSchema = schemaFactory.getJsonSchema(JsonLoader.fromString(jsonSchemaStr))
+      schemaMap.put(datasetId, jsonSchema);
     } catch {
-      case ex: Exception => ex.printStackTrace()
-        throw ex
-    } finally {
-      classGraphResult.close()
+      case ex: Exception =>
+        // TODO: create system event for the error trace
+        throw new ObsrvException(ErrorConstants.INVALID_JSON_SCHEMA)
     }
-    schemaMap.toMap
   }
 
-  logger.info("Schema initialization completed for telemetry objects...")
-
-  def schemaFileExists(event: Event): Boolean = schemaJsonMap.contains(event.schemaName)
+  def schemaFileExists(dataset: Dataset): Boolean = {
+    if(schemaMap.contains(dataset.id)) {
+      return true;
+    }
+    if(dataset.jsonSchema.isEmpty) {
+      throw new ObsrvException(ErrorConstants.JSON_SCHEMA_NOT_FOUND)
+    } else {
+      loadJsonSchema(dataset.id, dataset.jsonSchema.get);
+      true;
+    }
+  }
 
   @throws[IOException]
   @throws[ProcessingException]
-  def validate(event: Event, isSchemaPresent:Boolean): ProcessingReport = {
-    val eventJson = objectMapper.convertValue[JsonNode](event.getTelemetry.map, classOf[JsonNode])
-    val report = if(isSchemaPresent) schemaJsonMap(event.schemaName).validate(eventJson) else schemaJsonMap(config.defaultSchemaFile).validate(eventJson)
-    report
+  def validate(datasetId: String, event: Map[String, AnyRef]): ProcessingReport = {
+    val eventJson = objectMapper.convertValue[JsonNode](event, classOf[JsonNode])
+    schemaMap(datasetId).validate(eventJson)
   }
 
   def getInvalidFieldName(errorInfo: String): String = {

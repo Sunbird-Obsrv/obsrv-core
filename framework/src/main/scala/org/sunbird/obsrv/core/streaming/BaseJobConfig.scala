@@ -8,6 +8,7 @@ import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.sunbird.obsrv.core.model.SystemConfig
 
 class BaseJobConfig(val config: Config, val jobName: String) extends Serializable {
 
@@ -15,6 +16,7 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
 
   implicit val metricTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
+  val defaultDatasetID = SystemConfig.defaultDatasetId;
   val kafkaProducerBrokerServers: String = config.getString("kafka.producer.broker-servers")
   val kafkaConsumerBrokerServers: String = config.getString("kafka.consumer.broker-servers")
   // Producer Properties
@@ -40,8 +42,9 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
 
   val systemEventCount = "system-event-count"
   val kafkaSystemTopic: String = config.getString("kafka.output.system.event.topic")
-  val SYSTEM_EVENTS_OUTPUT_TAG = "system-events"
+  private val SYSTEM_EVENTS_OUTPUT_TAG = "system-events"
   val systemEventsOutputTag: OutputTag[String] = OutputTag[String](SYSTEM_EVENTS_OUTPUT_TAG)
+  val systemEventsProducer = "system-events-sink"
 
   // Checkpointing config
   val enableCompressedCheckpointing: Boolean = config.getBoolean("task.checkpointing.compressed")

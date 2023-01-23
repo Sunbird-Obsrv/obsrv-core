@@ -4,16 +4,15 @@ import com.typesafe.config.Config
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.streaming.api.scala.OutputTag
-import org.sunbird.obsrv.preprocessor.domain.Event
 import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
-import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 class PipelinePreprocessorConfig(override val config: Config) extends BaseJobConfig(config, "PipelinePreprocessorJob") {
 
   private val serialVersionUID = 2905979434303791379L
 
-  implicit val eventTypeInfo: TypeInformation[Event] = TypeExtractor.getForClass(classOf[Event])
+  implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
   implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
   val schemaPath: String = config.getString("telemetry.schema.path")
@@ -30,6 +29,7 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   val kafkaAuditRouteTopic: String = config.getString("kafka.output.audit.route.topic")
 
   val kafkaFailedTopic: String = config.getString("kafka.output.failed.topic")
+  val kafkaInvalidTopic: String = config.getString("kafka.output.invalid.topic")
   val kafkaDuplicateTopic: String = config.getString("kafka.output.duplicate.topic")
 
   val kafkaDenormSecondaryRouteTopic: String = config.getString("kafka.output.denorm.secondary.route.topic")
@@ -37,28 +37,12 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
 
   val defaultChannel: String = config.getString("default.channel")
 
-  val includedProducersForDedup: List[String] = config.getStringList("dedup.producer.included.ids").asScala.toList
-
   // Validation & dedup Stream out put tag
-  val validationFailedEventsOutputTag: OutputTag[Event] = OutputTag[Event]("validation-failed-events")
-  val uniqueEventsOutputTag: OutputTag[Event] = OutputTag[Event]("unique-events")
-  val duplicateEventsOutputTag: OutputTag[Event] = OutputTag[Event]("duplicate-events")
-
-  // Router stream out put tags
-  val primaryRouteEventsOutputTag: OutputTag[Event] = OutputTag[Event]("primary-route-events")
-
-  // Spliting events on priority for faster denorm processing
-  val denormSecondaryEventsRouteOutputTag: OutputTag[Event] = OutputTag[Event]("denorm-secondary-events")
-  val denormPrimaryEventsRouteOutputTag: OutputTag[Event] = OutputTag[Event]("denorm-primary-events")
-
-  // Audit, Log & Error Events output tag
-  val auditRouteEventsOutputTag: OutputTag[Event] = OutputTag[Event]("audit-route-events")
-  val logEventsOutputTag: OutputTag[Event] = OutputTag[Event]("log-route-events")
-  val errorEventOutputTag: OutputTag[Event] = OutputTag[Event]("error-route-events")
-
-  // Share events out put tags
-  val shareRouteEventsOutputTag: OutputTag[Event] = OutputTag[Event]("share-route-events")
-  val shareItemEventOutputTag: OutputTag[Event] = OutputTag[Event]("share-item-events")
+  val failedEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("failed-events")
+  val invalidEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("invalid-events")
+  val validEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("valid-events")
+  val uniqueEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("unique-events")
+  val duplicateEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("duplicate-events")
 
   override val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
   val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
@@ -82,6 +66,8 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   val validationFailureMetricsCount = "validation-failed-event-count"
   val duplicationEventMetricsCount = "duplicate-event-count"
   val duplicationSkippedEventMetricsCount = "duplicate-skipped-event-count"
+  val duplicationProcessedEventMetricsCount = "duplicate-processed-event-count"
+  val eventFailedMetricsCount = "failed-event-count"
   val uniqueEventsMetricsCount = "unique-event-count"
   val validationSkipMetricsCount = "validation-skipped-event-count"
 
@@ -89,7 +75,8 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   val shareItemEventsMetircsCount = "share-item-event-success-count"
 
   // Consumers
-  val pipelinePreprocessorConsumer = "pipeline-preprocessor-consumer"
+  val validationConsumer = "validation-consumer"
+  val dedupConsumer = "deduplication-consumer"
 
   // Functions
   val telemetryValidationFunction = "TelemetryValidationFunction"
@@ -110,8 +97,5 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   val denormPrimaryEventProducer = "denorm-primary-events-sink"
 
   val defaultSchemaFile = "envelope.json"
-
-  val secondaryEvents: List[String] = config.getStringList("secondary.events").asScala.toList
-
 
 }

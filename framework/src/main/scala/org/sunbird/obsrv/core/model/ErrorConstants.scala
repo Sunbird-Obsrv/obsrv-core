@@ -12,8 +12,14 @@ object ErrorConstants extends Enumeration {
   val EXTRACTED_DATA_NOT_A_LIST = ErrorInternalValue("ERR_EXT_1002", "The extracted data is not an list")
   val EVENT_SIZE_EXCEEDED = ErrorInternalValue("ERR_EXT_1003", ("Event size has exceeded max configured size of " + SystemConfig.maxEventSize))
   val MISSING_DATASET_ID = ErrorInternalValue("ERR_EXT_1004", "Dataset Id is missing from the data")
+  val MISSING_DATASET_CONFIGURATION = ErrorInternalValue("ERR_EXT_1005", "Dataset configuration is missing")
 
-  val NO_DEDUP_KEY_FOUND = ErrorInternalValue("ERR_DEDUP_1005", "No dedup key found or missing data")
-  val DEDUP_KEY_NOT_A_STRING = ErrorInternalValue("ERR_DEDUP_1006", "Dedup key value is not a String or Text")
-  val DUPLICATE_BATCH_EVENT_FOUND = ErrorInternalValue("ERR_EXT_1007", "Duplicate batch event found")
+  val NO_DEDUP_KEY_FOUND = ErrorInternalValue("ERR_DEDUP_1006", "No dedup key found or missing data")
+  val DEDUP_KEY_NOT_A_STRING = ErrorInternalValue("ERR_DEDUP_1007", "Dedup key value is not a String or Text")
+  val DUPLICATE_BATCH_EVENT_FOUND = ErrorInternalValue("ERR_EXT_1008", "Duplicate batch event found")
+
+  val DUPLICATE_EVENT_FOUND = ErrorInternalValue("ERR_PP_1009", "Duplicate event found")
+  val JSON_SCHEMA_NOT_FOUND = ErrorInternalValue("ERR_PP_1010", "Json schema not found for the dataset")
+  val INVALID_JSON_SCHEMA = ErrorInternalValue("ERR_PP_1011", "Invalid json schema")
+  val SCHEMA_VALIDATION_FAILED = ErrorInternalValue("ERR_PP_1012", "Event failed the schema validation")
 }

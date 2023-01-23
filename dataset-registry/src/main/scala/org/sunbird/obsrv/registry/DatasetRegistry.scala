@@ -1,7 +1,7 @@
 package org.sunbird.obsrv.registry
 
 import org.sunbird.obsrv.model.DatasetModels.Dataset
-import org.sunbird.obsrv.model.DatasetModels.Dataset
+
 object DatasetRegistry {
 
   var datasets: Map[String, Dataset] = null;
@@ -16,9 +16,13 @@ object DatasetRegistry {
     datasets = getAllDatasets();
   }
   
-  def getDataset(id:String) : Dataset = {
+  def getDataset(id:String) : Option[Dataset] = {
 
-    return datasets.get(id).get
+    return datasets.get(id)
+  }
+
+  def getDataSetIds(): List[String] = {
+    datasets.keySet.toList
   }
 
 
