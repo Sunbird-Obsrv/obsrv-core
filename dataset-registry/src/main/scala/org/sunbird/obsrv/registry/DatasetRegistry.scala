@@ -4,16 +4,15 @@ import org.sunbird.obsrv.model.DatasetModels.Dataset
 
 object DatasetRegistry {
 
-  var datasets: Map[String, Dataset] = null;
+  private val datasets: Map[String, Dataset] = findAllDatasets();
 
-  def getAllDatasets(): Map[String, Dataset] = {
-
-    return Map();
+  def getAllDatasets(): List[Dataset] = {
+    datasets.values.toList;
   }
 
-  def initialize(): Unit = {
-    // TODO: Move datasets to redis and this initialization can be removed
-    datasets = getAllDatasets();
+  private def findAllDatasets(): Map[String, Dataset] = {
+    // Todo query postgres to get the datasets
+    Map()
   }
   
   def getDataset(id:String) : Option[Dataset] = {

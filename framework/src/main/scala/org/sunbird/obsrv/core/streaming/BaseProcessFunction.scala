@@ -7,9 +7,10 @@ import org.apache.flink.api.scala.metrics.ScalaGauge
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction
-import org.apache.flink.streaming.api.windowing.windows.GlobalWindow
+import org.apache.flink.streaming.api.windowing.windows.{GlobalWindow, TimeWindow}
 import org.apache.flink.util.Collector
 import org.sunbird.obsrv.core.model.SystemConfig
+import org.sunbird.obsrv.core.util.Util
 
 import scala.collection.mutable
 
@@ -23,6 +24,10 @@ case class Metrics(metrics: Map[String, ConcurrentHashMap[String, AtomicLong]]) 
   }
   def incCounter(dataset: String, metric: String): Unit = {
     getMetric(dataset, metric).getAndIncrement()
+  }
+
+  def incCounter(dataset: String, metric: String, count: Long): Unit = {
+    getMetric(dataset, metric).getAndAdd(count)
   }
 
   def getAndReset(dataset: String, metric: String): Long = {
@@ -69,9 +74,7 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig) extends ProcessF
   }
 
   def getMutableMap(immutableMap: Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    val mutableMap = mutable.Map[String, AnyRef]();
-    mutableMap ++= immutableMap;
-    mutableMap
+    Util.getMutableMap(immutableMap)
   }
 
   def addFlags(event: mutable.Map[String, AnyRef], flags: Map[String, AnyRef]) = {
@@ -91,7 +94,7 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig) extends ProcessF
   }
 }
 
-abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig) extends ProcessWindowFunction[I, O, K, GlobalWindow] with BaseDeduplication with JobMetrics {
+abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig) extends ProcessWindowFunction[I, O, K, TimeWindow] with BaseDeduplication with JobMetrics {
 
   private val metricsList = getMetricsList();
   private val metrics: Metrics = registerMetrics(metricsList.datasets, metricsList.metrics)
@@ -108,11 +111,11 @@ abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig) extends
   def getMetricsList(): MetricsList
 
   def process(key: K,
-              context: ProcessWindowFunction[I, O, K, GlobalWindow]#Context,
+              context: ProcessWindowFunction[I, O, K, TimeWindow]#Context,
               elements: lang.Iterable[I],
               metrics: Metrics): Unit
 
-  override def process(key: K, context: ProcessWindowFunction[I, O, K, GlobalWindow]#Context, elements: lang.Iterable[I], out: Collector[O]): Unit = {
+  override def process(key: K, context: ProcessWindowFunction[I, O, K, TimeWindow]#Context, elements: lang.Iterable[I], out: Collector[O]): Unit = {
     process(key, context, elements, metrics)
   }
 

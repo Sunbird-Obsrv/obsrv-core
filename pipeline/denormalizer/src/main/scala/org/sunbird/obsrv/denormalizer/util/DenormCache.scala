@@ -1,158 +1,108 @@
 package org.sunbird.obsrv.denormalizer.util
 
-import java.util
-import com.google.gson.Gson
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.cache.RedisConnect
-import org.sunbird.obsrv.core.domain.EventsPath
-import org.sunbird.obsrv.denormalizer.domain.Event
-import org.sunbird.obsrv.denormalizer.task.DenormalizationConfig
+import org.sunbird.obsrv.core.exception.ObsrvException
+import org.sunbird.obsrv.core.model.ErrorConstants
+import org.sunbird.obsrv.core.model.ErrorConstants.Error
+import org.sunbird.obsrv.core.util.{JSONUtil, Util}
+import org.sunbird.obsrv.denormalizer.task.DenormalizerConfig
+import org.sunbird.obsrv.model.DatasetModels.{Dataset, DenormFieldConfig}
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.collection.mutable.{Map => MMap}
 import redis.clients.jedis.Pipeline
 import redis.clients.jedis.Response
 
-case class CacheResponseData(content: MMap[String, AnyRef], collection: MMap[String, AnyRef], l2data: MMap[String, AnyRef], device: MMap[String, AnyRef],
-                             dialCode: MMap[String, AnyRef], user: MMap[String, AnyRef])
+case class DenormEvent(msg: mutable.Map[String, AnyRef], var responses: Option[mutable.Map[String, Response[String]]], var error: Option[Error])
 
-class DenormCache(val config: DenormalizationConfig, val redisConnect: RedisConnect) {
+class DenormCache(val config: DenormalizerConfig) {
 
   private[this] val logger = LoggerFactory.getLogger(classOf[DenormCache])
-  private val pipeline: Pipeline = redisConnect.getConnection(0).pipelined()
-  val gson = new Gson()
+  private val datasetPipelineMap: mutable.Map[String, Pipeline] = mutable.Map[String, Pipeline]()
 
-  def close() {
-    this.pipeline.close()
+  def close(): Unit = {
+    datasetPipelineMap.values.foreach(pipeline => pipeline.close())
   }
 
-  def getDenormData(event: Event): CacheResponseData = {
-    this.pipeline.clear()
-    val responses = MMap[String, AnyRef]()
-    getContentCache(event, responses)
-    getDeviceCache(event, responses)
-    getDialcodeCache(event, responses)
-    getUserCache(event, responses)
-    this.pipeline.sync()
-    parseResponses(responses)
-  }
-
-  private def getContentCache(event: Event, responses: MMap[String, AnyRef]) {
-    this.pipeline.select(config.contentStore)
-    val objectType = event.objectType()
-    val objectId = event.objectID()
-    if (!List("user", "qr", "dialcode").contains(objectType) && null != objectId) {
-      responses.put("content", this.pipeline.get(objectId).asInstanceOf[AnyRef])
-
-      if (event.checkObjectIdNotEqualsRollUpId(EventsPath.OBJECT_ROLLUP_L1)) {
-        responses.put("collection", this.pipeline.get(event.objectRollUpl1ID()).asInstanceOf[AnyRef])
+  def open(datasets: List[Dataset]): Unit = {
+    datasets.map(dataset => {
+      if (dataset.denormConfig.isDefined) {
+        val denormConfig = dataset.denormConfig.get
+        val redisConnect = new RedisConnect(denormConfig.redisDBHost, denormConfig.redisDBPort, config)
+        val pipeline: Pipeline = redisConnect.getConnection(0).pipelined()
+        datasetPipelineMap.put(dataset.id, pipeline)
       }
-      if (event.checkObjectIdNotEqualsRollUpId(EventsPath.OBJECT_ROLLUP_L2)) {
-        responses.put("l2data", this.pipeline.get(event.objectRollUpl2ID()).asInstanceOf[AnyRef])
+    })
+  }
+
+  def denormEvent(datasetId: String, event: mutable.Map[String, AnyRef], denormFieldConfigs: List[DenormFieldConfig]):mutable.Map[String, AnyRef] = {
+    val pipeline = this.datasetPipelineMap(datasetId)
+    pipeline.clear()
+    val responses : mutable.Map[String, Response[String]] = mutable.Map[String, Response[String]]()
+    val eventStr = JSONUtil.serialize(event)
+    denormFieldConfigs.foreach(fieldConfig => {
+      responses.put(fieldConfig.denormOutField, getFromCache(pipeline, fieldConfig, eventStr))
+    })
+    pipeline.sync()
+    updateEvent(event, responses)
+  }
+
+  def denormMultipleEvents(datasetId: String, events: List[DenormEvent], denormFieldConfigs: List[DenormFieldConfig]): List[DenormEvent] = {
+    val pipeline = this.datasetPipelineMap(datasetId)
+    pipeline.clear()
+
+    events.foreach(denormEvent => {
+      val responses: mutable.Map[String, Response[String]] = mutable.Map[String, Response[String]]()
+      val event = Util.getMutableMap(denormEvent.msg("event").asInstanceOf[Map[String, AnyRef]])
+      val eventStr = JSONUtil.serialize(event)
+      try {
+        denormFieldConfigs.foreach(fieldConfig => {
+          responses.put(fieldConfig.denormOutField, getFromCache(pipeline, fieldConfig, eventStr))
+        })
+        denormEvent.responses = Some(responses)
+      } catch {
+        case ex: ObsrvException =>
+          denormEvent.error = Some(ex.error)
       }
+    })
+
+    pipeline.sync()
+    updateMultipleEvents(events)
+  }
+
+  private def getFromCache(pipeline: Pipeline, fieldConfig: DenormFieldConfig, eventStr: String): Response[String] = {
+    pipeline.select(fieldConfig.redisDB)
+    val denormFieldNode = JSONUtil.getKey(fieldConfig.denormKey, eventStr)
+    if(denormFieldNode.isMissingNode) {
+      throw new ObsrvException(ErrorConstants.DENORM_KEY_MISSING)
     }
-  }
-
-  private def getDialcodeCache(event: Event, responses: MMap[String, AnyRef]) {
-    this.pipeline.select(config.dialcodeStore)
-    if (null != event.objectType() && List("dialcode", "qr").contains(event.objectType().toLowerCase())) {
-      responses.put("dialcode", this.pipeline.get(event.objectID().toUpperCase()).asInstanceOf[AnyRef])
+    if(!denormFieldNode.isTextual) {
+      throw new ObsrvException(ErrorConstants.DENORM_KEY_NOT_A_STRING)
     }
+    val denormField = denormFieldNode.asText()
+    pipeline.get(denormField)
   }
 
-  private def getDeviceCache(event: Event, responses: MMap[String, AnyRef]) {
-    this.pipeline.select(config.deviceStore)
-    if (null != event.did() && event.did().nonEmpty) {
-      responses.put("device", this.pipeline.hgetAll(event.did()).asInstanceOf[AnyRef])
-    }
+  private def updateEvent(event: mutable.Map[String, AnyRef], responses: mutable.Map[String, Response[String]]): mutable.Map[String, AnyRef] = {
+
+    responses.map(f => {
+      event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
+    })
+    event
   }
 
-  private def getUserCache(event: Event, responses: scala.collection.mutable.Map[String, AnyRef]) {
-    this.pipeline.select(config.userStore)
-    val actorId = event.actorId()
-    val actorType = event.actorType()
-    if (null != actorId && actorId.nonEmpty && !"anonymous".equalsIgnoreCase(actorId) && ("user".equalsIgnoreCase(Option(actorType).getOrElse("")) || "ME_WORKFLOW_SUMMARY".equals(event.eid()))) {
-      responses.put("user", this.pipeline.hgetAll(config.userStoreKeyPrefix + actorId).asInstanceOf[AnyRef])
-    }
-  }
+  private def updateMultipleEvents(events: List[DenormEvent]):List[DenormEvent] = {
 
-  private def parseResponses(responses: MMap[String, AnyRef]) : CacheResponseData = {
-
-    val userData = responses.get("user").map(data => {
-      convertToComplexDataTypes(getData(data.asInstanceOf[Response[java.util.Map[String, String]]], config.userFields))
-    }).getOrElse(MMap[String, AnyRef]())
-
-    val deviceData = responses.get("device").map(data => {
-      convertToComplexDataTypes(getData(data.asInstanceOf[Response[java.util.Map[String, String]]], config.deviceFields))
-    }).getOrElse(MMap[String, AnyRef]())
-
-    val contentData = responses.get("content").map(data => {
-      getDataMap(data.asInstanceOf[Response[String]], config.contentFields)
-    }).getOrElse(MMap[String, AnyRef]())
-
-    val collectionData = responses.get("collection").map(data => {
-      getDataMap(data.asInstanceOf[Response[String]], config.contentFields)
-    }).getOrElse(MMap[String, AnyRef]())
-
-    val l2Data = responses.get("l2data").map(data => {
-      getDataMap(data.asInstanceOf[Response[String]], config.contentFields)
-    }).getOrElse(MMap[String, AnyRef]())
-
-    val dialData = responses.get("dialcode").map(data => {
-      getDataMap(data.asInstanceOf[Response[String]], config.dialcodeFields)
-    }).getOrElse(MMap[String, AnyRef]())
-
-    CacheResponseData(contentData, collectionData, l2Data, deviceData, dialData, userData)
-  }
-
-  private def getData(data: Response[java.util.Map[String, String]], fields: List[String]): MMap[String, String] = {
-    val dataMap = data.get()
-    if (dataMap.size() > 0) {
-      if (fields.nonEmpty) dataMap.keySet().retainAll(fields.asJava)
-      dataMap.values().removeAll(util.Collections.singleton(""))
-      dataMap.asScala
-    } else {
-      MMap[String, String]()
-    }
-  }
-
-  private def getDataMap(dataStr: Response[String], fields: List[String]): MMap[String, AnyRef] = {
-    val data = dataStr.get
-    if (data != null && !data.isEmpty) {
-      val dataMap = gson.fromJson(data, new util.HashMap[String, AnyRef]().getClass)
-      if (fields.nonEmpty) dataMap.keySet().retainAll(fields.asJava)
-      dataMap.values().removeAll(util.Collections.singleton(""))
-      dataMap.asScala
-    } else {
-      MMap[String, AnyRef]()
-    }
-  }
-
-  def isArray(value: String): Boolean = {
-    val redisValue = value.trim
-    redisValue.length > 0 && redisValue.startsWith("[")
-  }
-
-  def isObject(value: String) = {
-    val redisValue = value.trim
-    redisValue.length > 0 && redisValue.startsWith("{")
-  }
-
-  def convertToComplexDataTypes(data: mutable.Map[String, String]): MMap[String, AnyRef] = {
-    val result = mutable.Map[String, AnyRef]()
-    data.keys.map {
-      redisKey =>
-        val redisValue = data(redisKey)
-        if (isArray(redisValue)) {
-          result += redisKey -> gson.fromJson(redisValue, new util.ArrayList[AnyRef]().getClass)
-        } else if (isObject(redisValue)) {
-          result += redisKey -> gson.fromJson(redisValue, new util.HashMap[String, AnyRef]().getClass)
-        } else {
-          result += redisKey -> redisValue
-        }
-    }
-    result
+    events.map(denormEvent => {
+      if(denormEvent.responses.isDefined) {
+        val event = Util.getMutableMap(denormEvent.msg("event").asInstanceOf[Map[String, AnyRef]])
+        denormEvent.responses.get.map(f => {
+          event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
+        })
+        denormEvent.msg.put("event", event)
+      }
+      denormEvent
+    })
   }
 
 }
