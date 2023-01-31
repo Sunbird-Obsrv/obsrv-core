@@ -14,8 +14,11 @@ object DatasetModels {
 
   case class DenormConfig(redisDBHost: String, redisDBPort: Int, denormFields: List[DenormFieldConfig])
 
+  case class RouterConfig(topic: String)
+
   case class Dataset(id: String, schema: String, extractionConfig: Option[ExtractionConfig], dedupConfig: Option[DedupConfig],
-                     validationConfig: Option[ValidationConfig], jsonSchema: Option[String], denormConfig: Option[DenormConfig]);
+                     validationConfig: Option[ValidationConfig], jsonSchema: Option[String], denormConfig: Option[DenormConfig],
+                     routerConfig: RouterConfig);
 
 }
 

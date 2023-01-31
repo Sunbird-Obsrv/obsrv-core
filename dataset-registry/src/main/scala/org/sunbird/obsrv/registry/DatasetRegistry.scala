@@ -1,6 +1,6 @@
 package org.sunbird.obsrv.registry
 
-import org.sunbird.obsrv.model.DatasetModels.Dataset
+import org.sunbird.obsrv.model.DatasetModels.{Dataset, RouterConfig}
 
 object DatasetRegistry {
 
@@ -22,6 +22,10 @@ object DatasetRegistry {
 
   def getDataSetIds(): List[String] = {
     datasets.keySet.toList
+  }
+
+  def getRouterConfigs(): List[RouterConfig] = {
+    datasets.map(f => f._2.routerConfig).toList
   }
 
 
