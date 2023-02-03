@@ -1,13 +1,12 @@
 package org.sunbird.obsrv.preprocessor.functions
 
-import com.github.fge.jsonschema.core.report.{ListProcessingReport, ProcessingReport}
+import com.github.fge.jsonschema.core.report.ProcessingReport
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.slf4j.LoggerFactory
-import org.sunbird.obsrv.preprocessor.task.PipelinePreprocessorConfig
-import org.sunbird.obsrv.preprocessor.util.SchemaValidator
-import org.sunbird.obsrv.core.cache.{DedupEngine, RedisConnect}
 import org.sunbird.obsrv.core.exception.ObsrvException
 import org.sunbird.obsrv.core.model.ErrorConstants
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
@@ -15,6 +14,8 @@ import org.sunbird.obsrv.core.model.Models.{PData, SystemEvent}
 import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
 import org.sunbird.obsrv.core.util.JSONUtil
 import org.sunbird.obsrv.model.DatasetModels.Dataset
+import org.sunbird.obsrv.preprocessor.task.PipelinePreprocessorConfig
+import org.sunbird.obsrv.preprocessor.util.SchemaValidator
 import org.sunbird.obsrv.registry.DatasetRegistry
 
 import scala.collection.mutable
@@ -26,10 +27,9 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
   private[this] val logger = LoggerFactory.getLogger(classOf[EventValidationFunction])
 
   override def getMetricsList(): MetricsList = {
-    val metrics = List(config.validationFailureMetricsCount,
-      config.validationSuccessMetricsCount,
-      config.validationSkipMetricsCount)
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics);
+    val metrics = List(config.validationTotalMetricsCount, config.validationFailureMetricsCount,
+      config.validationSuccessMetricsCount, config.validationSkipMetricsCount)
+    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
   }
 
   override def open(parameters: Configuration): Unit = {
@@ -47,23 +47,24 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
 
-    val datasetId = msg.get("dataset");
+    metrics.incCounter(config.defaultDatasetID, config.validationTotalMetricsCount)
+    val datasetId = msg.get("dataset")
     if (datasetId.isEmpty) {
-      markFailed(msg, ErrorConstants.MISSING_DATASET_ID);
+      markFailed(msg, ErrorConstants.MISSING_DATASET_ID)
       context.output(config.failedEventsOutputTag, msg)
       metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
-      return;
+      return
     }
     val datasetOpt = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
     if (datasetOpt.isEmpty) {
-      markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION);
+      markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION)
       context.output(config.failedEventsOutputTag, msg)
       metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
-      return;
+      return
     }
-    val dataset = datasetOpt.get;
-    val validationConfig = dataset.validationConfig;
-    if(validationConfig.isDefined && validationConfig.get.validate.get) {
+    val dataset = datasetOpt.get
+    val validationConfig = dataset.validationConfig
+    if (validationConfig.isDefined && validationConfig.get.validate.get) {
       validateEvent(dataset, msg, context, metrics)
     } else {
       metrics.incCounter(dataset.id, config.validationSkipMetricsCount)
@@ -75,8 +76,8 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
                             context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                             metrics: Metrics): Unit = {
 
-    val event = msg.get("event").get.asInstanceOf[Map[String, AnyRef]]
-    try{
+    val event = msg("event").asInstanceOf[Map[String, AnyRef]]
+    try {
       if (schemaValidator.schemaFileExists(dataset)) {
         val validationReport = schemaValidator.validate(dataset.id, event)
         if (validationReport.isSuccess) {
@@ -103,9 +104,10 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
                                   context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                                   validationReport: ProcessingReport): Unit = {
     val failedErrorMsg = schemaValidator.getInvalidFieldName(validationReport.toString)
+    metrics.incCounter(dataset.id, config.validationFailureMetricsCount)
     context.output(config.invalidEventsOutputTag, markFailed(event, ErrorConstants.SCHEMA_VALIDATION_FAILED))
     val systemEvent = SystemEvent(PData(config.jobName, "flink", "validation"), Map("error_code" -> ErrorConstants.SCHEMA_VALIDATION_FAILED.errorCode, "error_msg" -> failedErrorMsg))
-    context.output(config.systemEventsOutputTag, JSONUtil.serialize(systemEvent));
+    context.output(config.systemEventsOutputTag, JSONUtil.serialize(systemEvent))
   }
 
   private def markFailed(event: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
@@ -118,4 +120,5 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
     addFlags(event, Map("preprocessing_processed" -> "yes"))
     event
   }
+
 }

@@ -15,15 +15,15 @@ class DenormalizerConfig(override val config: Config, jobName: String) extends B
   implicit val anyTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
   // Kafka Topics Configuration
-  val telemetryInputTopic: String = config.getString("kafka.input.telemetry.topic")
+  val inputTopic: String = config.getString("kafka.input.topic")
   val denormOutputTopic: String = config.getString("kafka.denorm.output.topic")
-
+  val denormFailedTopic: String = config.getString("kafka.denorm.failed.topic")
 
   override val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
-  val telemetryDownstreamOperatorsParallelism: Int = config.getInt("task.telemetry.downstream.operators.parallelism")
+  val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
 
   // Windows
-  val windowTime: Int = config.getInt("task.window.count")
+  val windowTime: Int = config.getInt("task.window.time.in.seconds")
   val windowCount: Int = config.getInt("task.window.count")
 
   val DENORM_EVENTS_PRODUCER = "telemetry-denorm-events-producer"

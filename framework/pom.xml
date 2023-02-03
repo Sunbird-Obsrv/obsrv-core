@@ -58,12 +58,10 @@
             <version>2.12.7</version>
         </dependency>
         <dependency>
-
             <groupId>com.fasterxml.jackson.module</groupId>
             <artifactId>jackson-module-scala_${scala.maj.version}</artifactId>
             <version>2.12.7</version>
         </dependency>
-
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>

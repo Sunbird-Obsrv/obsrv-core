@@ -14,8 +14,7 @@ import org.sunbird.obsrv.registry.DatasetRegistry
 
 import scala.collection.mutable
 
-class DeduplicationFunction(config: PipelinePreprocessorConfig,
-                            @transient var dedupEngine: DedupEngine = null)
+class DeduplicationFunction(config: PipelinePreprocessorConfig, @transient var dedupEngine: DedupEngine = null)
                            (implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]])
   extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) with BaseDeduplication {
 
@@ -23,12 +22,10 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig,
 
   override def getMetricsList(): MetricsList = {
     val metrics = List(
-      config.duplicationSkippedEventMetricsCount,
-      config.duplicationEventMetricsCount,
-      config.duplicationProcessedEventMetricsCount,
-      config.eventFailedMetricsCount
+      config.duplicationTotalMetricsCount, config.duplicationSkippedEventMetricsCount, config.duplicationEventMetricsCount,
+      config.duplicationProcessedEventMetricsCount, config.eventFailedMetricsCount
     )
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics);
+    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
   }
 
   override def open(parameters: Configuration): Unit = {
@@ -48,28 +45,29 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig,
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
 
-    val datasetId = msg.get("dataset");
+    metrics.incCounter(config.defaultDatasetID, config.duplicationTotalMetricsCount)
+    val datasetId = msg.get("dataset")
     if (datasetId.isEmpty) {
-      markFailed(msg, ErrorConstants.MISSING_DATASET_ID);
+      markFailed(msg, ErrorConstants.MISSING_DATASET_ID)
       context.output(config.failedEventsOutputTag, msg)
       metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
-      return;
+      return
     }
     val datasetOpt = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
     if (datasetOpt.isEmpty) {
-      markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION);
+      markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION)
       context.output(config.failedEventsOutputTag, msg)
       metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
-      return;
+      return
     }
-    val dataset = datasetOpt.get;
-    val dedupConfig = dataset.dedupConfig;
-    val event = msg.get("event").get.asInstanceOf[Map[String, AnyRef]];
-    val eventAsText = JSONUtil.serialize(event);
+    val dataset = datasetOpt.get
+    val dedupConfig = dataset.dedupConfig
+    val event = msg("event").asInstanceOf[Map[String, AnyRef]]
+    val eventAsText = JSONUtil.serialize(event)
     if (dedupConfig.isDefined && dedupConfig.get.dropDuplicates.get) {
       val isDup = isDuplicate(dataset.extractionConfig.get.dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
       if (isDup) {
-        metrics.incCounter(dataset.id, config.duplicationEventMetricsCount);
+        metrics.incCounter(dataset.id, config.duplicationEventMetricsCount)
         context.output(config.duplicateEventsOutputTag, markFailed(msg, ErrorConstants.DUPLICATE_EVENT_FOUND))
         return
       }
@@ -80,7 +78,7 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig,
   }
 
   private def markFailed(batchEvent: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
-    addFlags(batchEvent, Map("proprocessing_processed" -> "no"))
+    addFlags(batchEvent, Map("preprocessing_processed" -> "no"))
     addError(batchEvent, Map("src" -> config.jobName, "error_code" -> error.errorCode, "error_msg" -> error.errorMsg))
     batchEvent
   }

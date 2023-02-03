@@ -3,17 +3,20 @@ package org.sunbird.obsrv.core.util
 import java.lang.reflect.{ParameterizedType, Type}
 import com.fasterxml.jackson.annotation.JsonInclude.Include
 import com.fasterxml.jackson.core.JsonGenerator.Feature
-import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode, ObjectMapper, SerializationFeature}
+import com.fasterxml.jackson.databind.{DeserializationFeature, JsonNode, MapperFeature, ObjectMapper, SerializationFeature}
 import com.fasterxml.jackson.core.`type`.TypeReference
-import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import com.fasterxml.jackson.databind.json.JsonMapper
+import com.fasterxml.jackson.module.scala.{ClassTagExtensions, DefaultScalaModule, ScalaObjectMapper}
 
 object JSONUtil {
 
-  @transient val mapper = new ObjectMapper()
-  mapper.registerModule(DefaultScalaModule)
-  mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-  mapper.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false)
-  mapper.configure(Feature.WRITE_BIGDECIMAL_AS_PLAIN, true)
+  @transient private val mapper = JsonMapper.builder()
+    .addModule(DefaultScalaModule)
+    .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+    .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+    .enable(Feature.WRITE_BIGDECIMAL_AS_PLAIN)
+    .build() :: ClassTagExtensions
+
   mapper.setSerializationInclusion(Include.NON_NULL)
 
   @throws(classOf[Exception])
@@ -27,6 +30,10 @@ object JSONUtil {
 
   def deserialize[T: Manifest](json: Array[Byte]): T = {
     mapper.readValue(json, typeReference[T])
+  }
+
+  def convertValue(map: Map[String, AnyRef]): JsonNode = {
+    mapper.convertValue[JsonNode](map, classOf[JsonNode])
   }
 
   def getKey(key: String, json: String): JsonNode = {

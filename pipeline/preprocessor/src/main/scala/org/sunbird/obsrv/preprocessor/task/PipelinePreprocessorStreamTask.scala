@@ -12,7 +12,6 @@ import org.sunbird.obsrv.preprocessor.functions.{DeduplicationFunction, EventVal
 
 import scala.collection.mutable
 
-
 class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaConnector: FlinkKafkaConnector) {
 
   private val serialVersionUID = 146697324640926024L
@@ -21,11 +20,6 @@ class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaCo
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
     implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
     val kafkaConsumer = kafkaConnector.kafkaMapSource(config.kafkaInputTopic)
-
-    /**
-     * Process functions
-     * 1. TelemetryValidationFunction & DeduplicationFunction
-     */
 
     val validStream = env.addSource(kafkaConsumer, config.validationConsumer)
         .uid(config.validationConsumer).setParallelism(config.kafkaConsumerParallelism)
@@ -45,9 +39,12 @@ class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaCo
       .name(config.systemEventsProducer).uid(config.systemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
     validStream.getSideOutput(config.invalidEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaInvalidTopic)).name(config.invalidEventProducer).uid(config.invalidEventProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    uniqueStream.getSideOutput(config.duplicateEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaDuplicateTopic)).name(config.duplicateEventProducer).uid(config.duplicateEventProducer).setParallelism(config.downstreamOperatorsParallelism)
+    uniqueStream.getSideOutput(config.duplicateEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaDuplicateTopic))
+      .name(config.duplicateEventProducer).uid(config.duplicateEventProducer).setParallelism(config.downstreamOperatorsParallelism)
     uniqueStream.getSideOutput(config.systemEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(config.kafkaSystemTopic))
       .name(config.systemEventsProducer).uid(config.systemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
+    uniqueStream.getSideOutput(config.uniqueEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaUniqueTopic))
+      .name(config.uniqueEventProducer).uid(config.uniqueEventProducer).setParallelism(config.downstreamOperatorsParallelism)
 
     env.execute(config.jobName)
   }
@@ -66,5 +63,4 @@ object PipelinePreprocessorStreamTask {
     task.process()
   }
 }
-
 // $COVERAGE-ON$

@@ -8,7 +8,6 @@ import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.datastream.WindowedStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.functions.source.SourceFunction
-import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
@@ -31,19 +30,20 @@ class DenormalizerStreamTask(config: DenormalizerConfig, kafkaConnector: FlinkKa
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
     implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
 
-    val source: SourceFunction[mutable.Map[String, AnyRef]] = kafkaConnector.kafkaMapSource(config.telemetryInputTopic)
+    val source: SourceFunction[mutable.Map[String, AnyRef]] = kafkaConnector.kafkaMapSource(config.inputTopic)
     val windowedStream: WindowedStream[mutable.Map[String, AnyRef], String, TimeWindow] = env.addSource(source, config.denormalizationConsumer).uid(config.denormalizationConsumer)
       .setParallelism(config.kafkaConsumerParallelism).rebalance()
-      .keyBy(new DenormKeySelector(config))
+      .keyBy(new DenormKeySelector())
       .window(TumblingProcessingTimeCountWindows.of(Time.seconds(config.windowTime), config.windowCount))
 
     val denormStream = windowedStream
         .process(new DenormalizerWindowFunction(config)).name(config.denormalizationFunction).uid(config.denormalizationFunction)
-        .setParallelism(config.telemetryDownstreamOperatorsParallelism)
+        .setParallelism(config.downstreamOperatorsParallelism)
 
     denormStream.getSideOutput(config.denormEventsTag).addSink(kafkaConnector.kafkaMapSink(config.denormOutputTopic))
-      .name(config.DENORM_EVENTS_PRODUCER).uid(config.DENORM_EVENTS_PRODUCER)
-      .setParallelism(config.telemetryDownstreamOperatorsParallelism)
+      .name(config.DENORM_EVENTS_PRODUCER).uid(config.DENORM_EVENTS_PRODUCER).setParallelism(config.downstreamOperatorsParallelism)
+    denormStream.getSideOutput(config.denormFailedTag).addSink(kafkaConnector.kafkaMapSink(config.denormFailedTopic))
+      .name(config.DENORM_EVENTS_PRODUCER).uid(config.DENORM_EVENTS_PRODUCER).setParallelism(config.downstreamOperatorsParallelism)
 
     env.execute(config.jobName)
   }
@@ -66,9 +66,9 @@ object DenormalizerStreamTask {
 }
 // $COVERAGE-ON$
 
-class DenormKeySelector(config: DenormalizerConfig) extends KeySelector[mutable.Map[String, AnyRef], String] {
+class DenormKeySelector() extends KeySelector[mutable.Map[String, AnyRef], String] {
 
   override def getKey(in: mutable.Map[String, AnyRef]): String = {
-    in.get("dataset").get.asInstanceOf[String]
+    in("dataset").asInstanceOf[String]
   }
 }

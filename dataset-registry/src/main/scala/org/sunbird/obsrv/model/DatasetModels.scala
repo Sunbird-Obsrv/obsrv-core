@@ -16,7 +16,7 @@ object DatasetModels {
 
   case class RouterConfig(topic: String)
 
-  case class Dataset(id: String, schema: String, extractionConfig: Option[ExtractionConfig], dedupConfig: Option[DedupConfig],
+  case class Dataset(id: String, extractionConfig: Option[ExtractionConfig], dedupConfig: Option[DedupConfig],
                      validationConfig: Option[ValidationConfig], jsonSchema: Option[String], denormConfig: Option[DenormConfig],
                      routerConfig: RouterConfig);
 

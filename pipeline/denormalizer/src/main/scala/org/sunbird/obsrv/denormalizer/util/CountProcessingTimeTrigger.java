@@ -15,13 +15,13 @@ public class CountProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
     private final ReducingStateDescriptor<Long> stateDesc;
 
     private CountProcessingTimeTrigger(long maxCount) {
-        this.stateDesc = new ReducingStateDescriptor("count", new CountProcessingTimeTrigger.Sum(), LongSerializer.INSTANCE);
+        this.stateDesc = new ReducingStateDescriptor<>("count", new CountProcessingTimeTrigger.Sum(), LongSerializer.INSTANCE);
         this.maxCount = maxCount;
     }
 
     public TriggerResult onElement(Object element, long timestamp, TimeWindow window, Trigger.TriggerContext ctx) throws Exception {
         ctx.registerProcessingTimeTimer(window.maxTimestamp());
-        ReducingState<Long> count = (ReducingState) ctx.getPartitionedState(this.stateDesc);
+        ReducingState<Long> count = ctx.getPartitionedState(this.stateDesc);
         count.add(1L);
         if ((Long) count.get() >= this.maxCount) {
             count.clear();
@@ -31,7 +31,7 @@ public class CountProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
         }
     }
 
-    public TriggerResult onEventTime(long time, TimeWindow window, Trigger.TriggerContext ctx) throws Exception {
+    public TriggerResult onEventTime(long time, TimeWindow window, Trigger.TriggerContext ctx) {
         return TriggerResult.CONTINUE;
     }
 
@@ -39,7 +39,7 @@ public class CountProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
         return TriggerResult.FIRE;
     }
 
-    public void clear(TimeWindow window, Trigger.TriggerContext ctx) throws Exception {
+    public void clear(TimeWindow window, Trigger.TriggerContext ctx) {
         ctx.deleteProcessingTimeTimer(window.maxTimestamp());
         ((ReducingState) ctx.getPartitionedState(this.stateDesc)).clear();
     }
@@ -70,7 +70,7 @@ public class CountProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
         private Sum() {
         }
 
-        public Long reduce(Long value1, Long value2) throws Exception {
+        public Long reduce(Long value1, Long value2) {
             return value1 + value2;
         }
     }

@@ -20,7 +20,7 @@ class ExtractorConfig(override val config: Config) extends BaseJobConfig(config,
 
   // Kafka Topics Configuration
   val kafkaInputTopic: String = config.getString("kafka.input.topic")
-  val kafkaSuccessTopic: String = config.getString("kafka.output.success.topic")
+  val kafkaSuccessTopic: String = config.getString("kafka.output.raw.topic")
   val kafkaDuplicateTopic: String = config.getString("kafka.output.duplicate.topic")
   val kafkaFailedTopic: String = config.getString("kafka.output.failed.topic")
   val kafkaBatchFailedTopic: String = config.getString("kafka.output.batch.failed.topic")
@@ -35,6 +35,7 @@ class ExtractorConfig(override val config: Config) extends BaseJobConfig(config,
   private val DUPLICATE_EVENTS_OUTPUT_TAG = "duplicate-batch-events"
 
   // Metric List
+  val totalEventCount = "total-event-count"
   val successEventCount = "success-event-count"
   val failedEventCount = "failed-event-count"
   val failedExtractionCount = "failed-extraction-count"

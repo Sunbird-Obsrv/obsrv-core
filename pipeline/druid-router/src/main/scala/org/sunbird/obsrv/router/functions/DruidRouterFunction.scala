@@ -40,5 +40,6 @@ class DruidRouterFunction(config: DruidRouterConfig)
     val event = getMutableMap(msg("event").asInstanceOf[Map[String, AnyRef]])
     val routerConfig = dataset.routerConfig
     ctx.output(OutputTag[mutable.Map[String, AnyRef]](routerConfig.topic), event)
+    metrics.incCounter(datasetId, config.routerSuccessCount)
   }
 }

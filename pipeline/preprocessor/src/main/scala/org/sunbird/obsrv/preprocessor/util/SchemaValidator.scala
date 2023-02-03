@@ -1,7 +1,5 @@
 package org.sunbird.obsrv.preprocessor.util
 
-import java.io.IOException
-import com.fasterxml.jackson.databind.{JsonNode, ObjectMapper}
 import com.github.fge.jackson.JsonLoader
 import com.github.fge.jsonschema.core.exceptions.ProcessingException
 import com.github.fge.jsonschema.core.report.ProcessingReport
@@ -9,23 +7,24 @@ import com.github.fge.jsonschema.main.{JsonSchema, JsonSchemaFactory}
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.exception.ObsrvException
 import org.sunbird.obsrv.core.model.ErrorConstants
+import org.sunbird.obsrv.core.util.JSONUtil
 import org.sunbird.obsrv.model.DatasetModels.Dataset
 import org.sunbird.obsrv.preprocessor.task.PipelinePreprocessorConfig
 
+import java.io.IOException
 import scala.collection.mutable
 
 class SchemaValidator(config: PipelinePreprocessorConfig) extends java.io.Serializable {
 
   private val serialVersionUID = 8780940932759659175L
   private[this] val logger = LoggerFactory.getLogger(classOf[SchemaValidator])
-  private[this] val objectMapper = new ObjectMapper()
   private[this] val schemaMap = mutable.Map[String, JsonSchema]()
 
   private def loadJsonSchema(datasetId: String, jsonSchemaStr: String) = {
     val schemaFactory = JsonSchemaFactory.byDefault
     try {
       val jsonSchema = schemaFactory.getJsonSchema(JsonLoader.fromString(jsonSchemaStr))
-      schemaMap.put(datasetId, jsonSchema);
+      schemaMap.put(datasetId, jsonSchema)
     } catch {
       case ex: Exception =>
         // TODO: create system event for the error trace
@@ -34,22 +33,21 @@ class SchemaValidator(config: PipelinePreprocessorConfig) extends java.io.Serial
   }
 
   def schemaFileExists(dataset: Dataset): Boolean = {
-    if(schemaMap.contains(dataset.id)) {
-      return true;
+    if (schemaMap.contains(dataset.id)) {
+      return true
     }
-    if(dataset.jsonSchema.isEmpty) {
+    if (dataset.jsonSchema.isEmpty) {
       throw new ObsrvException(ErrorConstants.JSON_SCHEMA_NOT_FOUND)
     } else {
-      loadJsonSchema(dataset.id, dataset.jsonSchema.get);
-      true;
+      loadJsonSchema(dataset.id, dataset.jsonSchema.get)
+      true
     }
   }
 
   @throws[IOException]
   @throws[ProcessingException]
   def validate(datasetId: String, event: Map[String, AnyRef]): ProcessingReport = {
-    val eventJson = objectMapper.convertValue[JsonNode](event, classOf[JsonNode])
-    schemaMap(datasetId).validate(eventJson)
+    schemaMap(datasetId).validate(JSONUtil.convertValue(event))
   }
 
   def getInvalidFieldName(errorInfo: String): String = {
