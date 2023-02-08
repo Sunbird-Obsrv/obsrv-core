@@ -15,7 +15,7 @@ class ExtractorConfig(override val config: Config) extends BaseJobConfig(config,
   implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
   implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
-  val dedupStore: Int = config.getInt("redis.database.extractionduplicates.id")
+  val dedupStore: Int = config.getInt("redis.database.duplication.store.id")
   val cacheExpiryInSeconds: Int = SystemConfig.defaultDedupPeriodInSeconds
 
   // Kafka Topics Configuration

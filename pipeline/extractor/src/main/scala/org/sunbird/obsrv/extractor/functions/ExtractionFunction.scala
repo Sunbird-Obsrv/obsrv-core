@@ -20,11 +20,10 @@ import scala.collection.mutable
 class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: DedupEngine = null)(implicit val stringTypeInfo: TypeInformation[String])
   extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) with BaseDeduplication {
 
-  private val gson = new Gson()
 
   override def getMetricsList(): MetricsList = {
-    val metrics = List(config.successEventCount, config.systemEventCount, config.failedEventCount,
-      config.skippedExtractionCount, config.duplicateExtractionCount, config.totalEventCount)
+    val metrics = List(config.successEventCount, config.systemEventCount, config.failedEventCount, config.failedExtractionCount,
+      config.skippedExtractionCount, config.duplicateExtractionCount, config.totalEventCount, config.successExtractionCount)
     MetricsList(DatasetRegistry.getDataSetIds(), metrics)
   }
 
@@ -67,8 +66,29 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
       }
       extractData(dataset, batchEvent, eventAsText, context, metrics)
     } else {
-      context.output(config.rawEventsOutputTag, markSkipped(dataset.id, batchEvent))
+      skipExtraction(dataset, batchEvent, context, metrics)
+    }
+  }
+
+  private def skipExtraction(dataset: Dataset, batchEvent: mutable.Map[String, AnyRef], context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
+                             metrics: Metrics): Unit = {
+    val syncTs = batchEvent.get("syncts").getOrElse(System.currentTimeMillis()).asInstanceOf[Number].longValue()
+    val immutableEvent = batchEvent.get("event")
+    if(immutableEvent.isEmpty || !immutableEvent.get.isInstanceOf[Map[String, AnyRef]]) {
+      metrics.incCounter(dataset.id, config.failedEventCount)
+      context.output(config.failedEventsOutputTag, markFailed(dataset.id, batchEvent, ErrorConstants.EVENT_MISSING))
+      return
+    }
+    val eventData = getMutableMap(immutableEvent.get.asInstanceOf[Map[String, AnyRef]])
+    updateEvent(eventData, syncTs)
+    val eventJson = JSONUtil.serialize(eventData)
+    val eventSize = eventJson.getBytes("UTF-8").length
+    if (eventSize > config.eventMaxSize) {
+      metrics.incCounter(dataset.id, config.failedEventCount)
+      context.output(config.failedEventsOutputTag, markFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED))
+    } else {
       metrics.incCounter(dataset.id, config.skippedExtractionCount)
+      context.output(config.rawEventsOutputTag, markSkipped(dataset.id, eventData))
     }
   }
 
@@ -76,7 +96,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
                           metrics: Metrics): Unit = {
     try {
       val eventsList = getEventsList(dataset, eventAsText)
-      val syncTs = Option(batchEvent.get("syncts")).getOrElse(System.currentTimeMillis()).asInstanceOf[Number].longValue()
+      val syncTs = batchEvent.get("syncts").getOrElse(System.currentTimeMillis()).asInstanceOf[Number].longValue()
       eventsList.foreach(immutableEvent => {
         val eventData = getMutableMap(immutableEvent)
         updateEvent(eventData, syncTs)
@@ -90,7 +110,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
           context.output(config.rawEventsOutputTag, markSuccess(dataset.id, eventData))
         }
       })
-      context.output(config.systemEventsOutputTag, gson.toJson(generateSystemEvent(dataset.id, eventsList.size)))
+      context.output(config.systemEventsOutputTag, JSONUtil.serialize(generateSystemEvent(dataset.id, eventsList.size)))
       metrics.incCounter(dataset.id, config.systemEventCount)
       metrics.incCounter(dataset.id, config.successExtractionCount)
     } catch {
@@ -140,13 +160,15 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
   }
 
   private def markSuccess(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("extraction_processed" -> "yes"))
-    createWrapperEvent(dataset, event)
+    val wrapperEvent = createWrapperEvent(dataset, event)
+    addFlags(wrapperEvent, Map("extraction_processed" -> "yes"))
+    wrapperEvent
   }
 
   private def markSkipped(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("extraction_processed" -> "skipped"))
-    createWrapperEvent(dataset, event)
+    val wrapperEvent = createWrapperEvent(dataset, event)
+    addFlags(wrapperEvent, Map("extraction_processed" -> "skipped"))
+    wrapperEvent
   }
 
 

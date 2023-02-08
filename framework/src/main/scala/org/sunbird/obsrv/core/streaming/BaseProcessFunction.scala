@@ -19,7 +19,7 @@ case class MetricsList(val datasets: List[String], val metrics: List[String]);
 case class Metrics(metrics: Map[String, ConcurrentHashMap[String, AtomicLong]]) {
 
   private def getMetric(dataset: String, metric: String): AtomicLong = {
-    val datasetMetrics: ConcurrentHashMap[String, AtomicLong] = metrics.getOrElse(dataset, SystemConfig.defaultDatasetId).asInstanceOf[ConcurrentHashMap[String, AtomicLong]];
+    val datasetMetrics: ConcurrentHashMap[String, AtomicLong] = metrics.getOrElse(dataset, new ConcurrentHashMap[String, AtomicLong]()).asInstanceOf[ConcurrentHashMap[String, AtomicLong]];
     datasetMetrics.get(metric)
   }
   def incCounter(dataset: String, metric: String): Unit = {
@@ -42,9 +42,10 @@ case class Metrics(metrics: Map[String, ConcurrentHashMap[String, AtomicLong]]) 
 trait JobMetrics {
   def registerMetrics(datasets: List[String], metrics: List[String]): Metrics = {
 
-    val datasetMetricMap:Map[String, ConcurrentHashMap[String, AtomicLong]] = datasets.map(dataset => {
+    val allDatasets = datasets ++ List((SystemConfig.defaultDatasetId))
+    val datasetMetricMap:Map[String, ConcurrentHashMap[String, AtomicLong]] = allDatasets.map(dataset => {
       val metricMap = new ConcurrentHashMap[String, AtomicLong]()
-      metrics.map { metric => metricMap.put(metric, new AtomicLong(0L)) }
+      metrics.foreach { metric => metricMap.put(metric, new AtomicLong(0L)) }
       (dataset, metricMap)
     }).toMap
 
