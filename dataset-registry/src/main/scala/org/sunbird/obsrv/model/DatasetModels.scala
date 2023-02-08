@@ -1,8 +1,10 @@
 package org.sunbird.obsrv.model
 
-import ValidationModes.ValidationMode
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.core.`type`.TypeReference
+import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import org.sunbird.obsrv.core.model.SystemConfig
+import org.sunbird.obsrv.model.ValidationMode.ValidationMode
 
 import scala.beans.BeanProperty
 
@@ -17,7 +19,8 @@ object DatasetModels {
                          @JsonProperty("dedup_key") dedupKey: Option[String],
                          @JsonProperty("dedup_period") dedupPeriod: Option[Integer] = Some(SystemConfig.defaultDedupPeriodInSeconds))
 
-  case class ValidationConfig(@JsonProperty("validate") validate: Option[Boolean] = Some(true), @JsonProperty("mode") mode: Option[ValidationMode])
+  case class ValidationConfig(@JsonProperty("validate") validate: Option[Boolean] = Some(true),
+                              @JsonProperty("mode") @JsonScalaEnumeration(classOf[ValidationModeType]) mode: Option[ValidationMode])
 
   case class DenormFieldConfig(@JsonProperty("denorm_key") denormKey: String, @JsonProperty("redis_db") redisDB: Int,
                                @JsonProperty("denorm_out_field") denormOutField: String)
@@ -34,7 +37,8 @@ object DatasetModels {
 
 }
 
-object ValidationModes extends Enumeration {
+class ValidationModeType extends TypeReference[ValidationMode.type]
+object ValidationMode extends Enumeration {
   type ValidationMode = Value
   val Strict, IgnoreNewFields, DiscardNewFields = Value
 }

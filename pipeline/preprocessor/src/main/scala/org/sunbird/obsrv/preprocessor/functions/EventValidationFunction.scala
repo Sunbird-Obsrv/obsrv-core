@@ -1,8 +1,6 @@
 package org.sunbird.obsrv.preprocessor.functions
 
 import com.github.fge.jsonschema.core.report.ProcessingReport
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
@@ -28,7 +26,7 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
 
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.validationTotalMetricsCount, config.validationFailureMetricsCount,
-      config.validationSuccessMetricsCount, config.validationSkipMetricsCount)
+      config.validationSuccessMetricsCount, config.validationSkipMetricsCount, config.eventFailedMetricsCount)
     MetricsList(DatasetRegistry.getDataSetIds(), metrics)
   }
 
@@ -50,25 +48,29 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
     metrics.incCounter(config.defaultDatasetID, config.validationTotalMetricsCount)
     val datasetId = msg.get("dataset")
     if (datasetId.isEmpty) {
-      markFailed(msg, ErrorConstants.MISSING_DATASET_ID)
-      context.output(config.failedEventsOutputTag, msg)
+      context.output(config.failedEventsOutputTag, markFailed(msg, ErrorConstants.MISSING_DATASET_ID))
       metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
       return
     }
     val datasetOpt = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
     if (datasetOpt.isEmpty) {
-      markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION)
-      context.output(config.failedEventsOutputTag, msg)
+      context.output(config.failedEventsOutputTag, markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION))
       metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
       return
     }
     val dataset = datasetOpt.get
+    val immutableEvent = msg.get("event")
+    if (immutableEvent.isEmpty || !immutableEvent.get.isInstanceOf[Map[String, AnyRef]]) {
+      metrics.incCounter(dataset.id, config.eventFailedMetricsCount)
+      context.output(config.failedEventsOutputTag, markFailed(msg, ErrorConstants.EVENT_MISSING))
+      return
+    }
     val validationConfig = dataset.validationConfig
     if (validationConfig.isDefined && validationConfig.get.validate.get) {
       validateEvent(dataset, msg, context, metrics)
     } else {
       metrics.incCounter(dataset.id, config.validationSkipMetricsCount)
-      context.output(config.validEventsOutputTag, msg)
+      context.output(config.validEventsOutputTag, markSkipped(msg))
     }
   }
 
@@ -118,6 +120,11 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
 
   private def markSuccess(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
     addFlags(event, Map("preprocessing_processed" -> "yes"))
+    event
+  }
+
+  private def markSkipped(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+    addFlags(event, Map("preprocessing_processed" -> "skipped"))
     event
   }
 

@@ -52,6 +52,7 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   val dedupConsumer = "deduplication-consumer"
 
   // Producers
+  val failedEventProducer = "failed-events-sink"
   val invalidEventProducer = "invalid-events-sink"
   val duplicateEventProducer = "duplicate-events-sink"
   val uniqueEventProducer = "unique-events-sink"
