@@ -11,8 +11,7 @@ import org.sunbird.obsrv.router.task.DruidRouterConfig
 
 import scala.collection.mutable
 
-class DruidRouterFunction(config: DruidRouterConfig)
-                         (implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]])
+class DruidRouterFunction(config: DruidRouterConfig)(implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]])
   extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
   private[this] val logger = LoggerFactory.getLogger(classOf[DruidRouterFunction])

@@ -26,7 +26,7 @@ class DruidRouterStreamTask(config: DruidRouterConfig, kafkaConnector: FlinkKafk
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
     implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
 
-    val routerConfigs = DatasetRegistry.getRouterConfigs();
+    val datasets = DatasetRegistry.getAllDatasets()
 
     /**
      * Perform validation
@@ -38,10 +38,10 @@ class DruidRouterStreamTask(config: DruidRouterConfig, kafkaConnector: FlinkKafk
         .process(new DruidRouterFunction(config)).name(config.druidRouterFunction).uid(config.druidRouterFunction)
         .setParallelism(config.downstreamOperatorsParallelism)
 
-    routerConfigs.map(routerConfig => {
-      dataStream.getSideOutput(OutputTag[mutable.Map[String, AnyRef]](routerConfig.topic))
-        .addSink(kafkaConnector.kafkaMapSink(routerConfig.topic))
-        .name(config.druidRouterProducer).uid(config.druidRouterProducer)
+    datasets.map(dataset => {
+      dataStream.getSideOutput(OutputTag[mutable.Map[String, AnyRef]](dataset.routerConfig.topic))
+        .addSink(kafkaConnector.kafkaMapSink(dataset.routerConfig.topic))
+        .name(dataset.id + "-" + config.druidRouterProducer).uid(dataset.id + "-" + config.druidRouterProducer)
         .setParallelism(config.downstreamOperatorsParallelism)
     })
 

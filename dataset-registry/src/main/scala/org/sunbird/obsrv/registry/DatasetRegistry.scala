@@ -98,10 +98,6 @@ object DatasetRegistry {
     datasets.keySet.toList
   }
 
-  def getRouterConfigs(): List[RouterConfig] = {
-    datasets.map(f => f._2.routerConfig).toList
-  }
-
 }
 
 object TestDatasetRegistry {
