@@ -12,10 +12,6 @@ class DruidRouterConfig(override val config: Config) extends BaseJobConfig(confi
   private val serialVersionUID = 2905979434303791379L
   implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
 
-  override val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
-  val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
-
-
   // Kafka Topics Configuration
   val kafkaInputTopic: String = config.getString("kafka.input.topic")
 

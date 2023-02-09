@@ -1,35 +1,54 @@
 package org.sunbird.obsrv.transformer.functions
 
-import com.google.gson.reflect.TypeToken
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.streaming.api.functions.ProcessFunction
-import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics}
+import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
+import org.sunbird.obsrv.registry.DatasetRegistry
 import org.sunbird.obsrv.transformer.task.TransformerConfig
 
-import java.lang.reflect.Type
-import java.util
+import scala.collection.mutable
 
-class TransformerFunction(config: TransformerConfig)(implicit val stringTypeInfo: TypeInformation[String])
-  extends BaseProcessFunction[util.Map[String, AnyRef], util.Map[String, AnyRef]](config) {
+class TransformerFunction(config: TransformerConfig)(implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]])
+  extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
-  val mapType: Type = new TypeToken[util.Map[String, AnyRef]]() {}.getType
 
-  override def metricsList(): List[String] = {
-    List()
+  override def getMetricsList(): MetricsList = {
+    val metrics = List(config.totalEventCount, config.transformSuccessCount,
+      config.transformFailedCount, config.transformSkippedCount)
+    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
   }
 
 
   /**
-   * Method to process the events extraction from the batch
-   *
-   * @param batchEvent - Batch of telemetry events
-   * @param context
+   * Method to process the event transformations
    */
-  override def processElement(batchEvent: util.Map[String, AnyRef],
-                              context: ProcessFunction[util.Map[String, AnyRef], util.Map[String, AnyRef]]#Context,
+  override def processElement(msg: mutable.Map[String, AnyRef],
+                              context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
 
+    val datasetId = msg("dataset").asInstanceOf[String] // DatasetId cannot be empty at this stage
+    metrics.incCounter(datasetId, config.totalEventCount)
 
+    val datasetTransformations = DatasetRegistry.getDatasetTransformations(datasetId)
+    if(datasetTransformations.isDefined) {
+      // TODO: Perform transformations
+      metrics.incCounter(datasetId, config.transformSuccessCount)
+      context.output(config.transformerOutputTag, markSuccess(msg))
+    } else {
+      metrics.incCounter(datasetId, config.transformSkippedCount)
+      context.output(config.transformerOutputTag, markSkipped(msg))
+    }
+
+  }
+
+  private def markSkipped(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+    addFlags(event, Map("transformer_processed" -> "skipped"))
+    event
+  }
+
+  private def markSuccess(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+    addFlags(event, Map("transformer_processed" -> "yes"))
+    event
   }
 
 }

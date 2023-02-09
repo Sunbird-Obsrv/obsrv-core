@@ -29,6 +29,7 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
   val delayBetweenAttempts: Long = config.getLong("task.restart-strategy.delay")
   val parallelism: Int = config.getInt("task.parallelism")
   val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
+  val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
   // Only for Tests
   val kafkaAutoOffsetReset: Option[String] = if (config.hasPath("kafka.auto.offset.reset")) Option(config.getString("kafka.auto.offset.reset")) else None
 
@@ -36,9 +37,6 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
   val redisHost: String = Option(config.getString("redis.host")).getOrElse("localhost")
   val redisPort: Int = Option(config.getInt("redis.port")).getOrElse(6379)
   val redisConnectionTimeout: Int = Option(config.getInt("redisdb.connection.timeout")).getOrElse(30000)
-
-  val metaRedisHost: String = Option(config.getString("redis-meta.host")).getOrElse("localhost")
-  val metaRedisPort: Int = Option(config.getInt("redis-meta.port")).getOrElse(6379)
 
   val systemEventCount = "system-event-count"
   val kafkaSystemTopic: String = config.getString("kafka.output.system.event.topic")

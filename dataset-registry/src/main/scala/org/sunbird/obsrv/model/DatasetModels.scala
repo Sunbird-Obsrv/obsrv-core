@@ -35,6 +35,16 @@ object DatasetModels {
                      @JsonProperty("topic") jsonSchema: Option[String], @JsonProperty("denorm_config") denormConfig: Option[DenormConfig],
                      @JsonProperty("router_config") routerConfig: RouterConfig);
 
+  case class Datasource(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
+                        @JsonProperty("ingestion_spec") ingestionSpec: String, @JsonProperty("datasource") datasource: String,
+                        @JsonProperty("retention_policy") retentionPolicy: Option[String], @JsonProperty("archival_policy") archivalPolicy: Option[String],
+                        @JsonProperty("purge_policy") purgePolicy: Option[String], @JsonProperty("backup_config") backupConfig: Option[String])
+
+  case class DatasetTransformation(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
+                                   @JsonProperty("field_key") fieldKey: String, @JsonProperty("transformation_function") transformationFunction: String,
+                                   @JsonProperty("field_out_key") fieldOutKey: String)
+
+
 }
 
 class ValidationModeType extends TypeReference[ValidationMode.type]
