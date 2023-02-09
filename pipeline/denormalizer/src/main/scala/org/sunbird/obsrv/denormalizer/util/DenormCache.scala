@@ -62,6 +62,7 @@ class DenormCache(val config: DenormalizerConfig) {
         denormEvent.responses = Some(responses)
       } catch {
         case ex: ObsrvException =>
+          ex.printStackTrace()
           denormEvent.error = Some(ex.error)
       }
     })
@@ -97,7 +98,9 @@ class DenormCache(val config: DenormalizerConfig) {
       if(denormEvent.responses.isDefined) {
         val event = Util.getMutableMap(denormEvent.msg("event").asInstanceOf[Map[String, AnyRef]])
         denormEvent.responses.get.map(f => {
-          event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
+          if(f._2.get() != null) {
+            event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
+          }
         })
         denormEvent.msg.put("event", event)
       }

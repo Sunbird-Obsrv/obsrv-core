@@ -7,7 +7,7 @@ import org.apache.flink.streaming.api.scala.OutputTag
 import org.sunbird.obsrv.core.streaming.BaseJobConfig
 import scala.collection.mutable
 
-class DenormalizerConfig(override val config: Config, jobName: String) extends BaseJobConfig(config, jobName ) {
+class DenormalizerConfig(override val config: Config) extends BaseJobConfig(config, "DenormalizerJob" ) {
 
   private val serialVersionUID = 2905979434303791379L
 
@@ -16,17 +16,15 @@ class DenormalizerConfig(override val config: Config, jobName: String) extends B
 
   // Kafka Topics Configuration
   val inputTopic: String = config.getString("kafka.input.topic")
-  val denormOutputTopic: String = config.getString("kafka.denorm.output.topic")
+  val denormOutputTopic: String = config.getString("kafka.output.topic")
   val denormFailedTopic: String = config.getString("kafka.denorm.failed.topic")
-
-  override val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
-  val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
 
   // Windows
   val windowTime: Int = config.getInt("task.window.time.in.seconds")
   val windowCount: Int = config.getInt("task.window.count")
 
-  val DENORM_EVENTS_PRODUCER = "telemetry-denorm-events-producer"
+  val DENORM_EVENTS_PRODUCER = "denorm-events-producer"
+  val DENORM_FAILED_EVENTS_PRODUCER = "denorm-failed-events-producer"
 
   private val DENORM_EVENTS = "denorm_events"
   private val FAILED_EVENTS = "denorm_failed_events"

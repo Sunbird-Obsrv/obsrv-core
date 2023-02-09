@@ -102,6 +102,6 @@ object DatasetRegistry {
 
 object TestDatasetRegistry {
   def main(args: Array[String]): Unit = {
-    Console.println(DatasetRegistry.getDataset("obs2.0").get.validationConfig.get)
+    Console.println(DatasetRegistry.getDataset("obs2.0").get.denormConfig.get)
   }
 }

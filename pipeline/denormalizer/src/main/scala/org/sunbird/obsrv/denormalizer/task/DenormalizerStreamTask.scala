@@ -43,7 +43,7 @@ class DenormalizerStreamTask(config: DenormalizerConfig, kafkaConnector: FlinkKa
     denormStream.getSideOutput(config.denormEventsTag).addSink(kafkaConnector.kafkaMapSink(config.denormOutputTopic))
       .name(config.DENORM_EVENTS_PRODUCER).uid(config.DENORM_EVENTS_PRODUCER).setParallelism(config.downstreamOperatorsParallelism)
     denormStream.getSideOutput(config.denormFailedTag).addSink(kafkaConnector.kafkaMapSink(config.denormFailedTopic))
-      .name(config.DENORM_EVENTS_PRODUCER).uid(config.DENORM_EVENTS_PRODUCER).setParallelism(config.downstreamOperatorsParallelism)
+      .name(config.DENORM_FAILED_EVENTS_PRODUCER).uid(config.DENORM_FAILED_EVENTS_PRODUCER).setParallelism(config.downstreamOperatorsParallelism)
 
     env.execute(config.jobName)
   }
@@ -58,7 +58,7 @@ object DenormalizerStreamTask {
     val config = configFilePath.map {
       path => ConfigFactory.parseFile(new File(path)).resolve()
     }.getOrElse(ConfigFactory.load("de-normalization.conf").withFallback(ConfigFactory.systemEnvironment()))
-    val denormalizationConfig = new DenormalizerConfig(config, "DenormalizationJob")
+    val denormalizationConfig = new DenormalizerConfig(config)
     val kafkaUtil = new FlinkKafkaConnector(denormalizationConfig)
     val task = new DenormalizerStreamTask(denormalizationConfig, kafkaUtil)
     task.process()
