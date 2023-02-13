@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS datasets (
     updated_date timestamp NOT NULL
 );
 
+CREATE INDEX IF NOT EXISTS datasets_status ON datasets(status);
+
 CREATE TABLE IF NOT EXISTS datasources (
     id text PRIMARY KEY,
     dataset_id text REFERENCES datasets (id),
@@ -28,6 +30,8 @@ CREATE TABLE IF NOT EXISTS datasources (
     created_date Date NOT NULL,
     updated_date Date NOT NULL
 );
+CREATE INDEX IF NOT EXISTS datasources_status ON datasources(status);
+CREATE INDEX IF NOT EXISTS datasources_dataset ON datasources(dataset_id);
 
 CREATE TABLE IF NOT EXISTS dataset_transformations (
     id text PRIMARY KEY,
@@ -41,6 +45,8 @@ CREATE TABLE IF NOT EXISTS dataset_transformations (
     created_date Date NOT NULL,
     updated_date Date NOT NULL
 );
+CREATE INDEX IF NOT EXISTS dataset_transformations_status ON dataset_transformations(status);
+CREATE INDEX IF NOT EXISTS dataset_transformations_dataset ON dataset_transformations(dataset_id);
 
 CREATE TABLE IF NOT EXISTS cloud_backup_config (
     id text PRIMARY KEY,
@@ -83,6 +89,8 @@ CREATE TABLE IF NOT EXISTS datasets_denorm_config (
     updated_date Date NOT NULL,
     UNIQUE(field_key, dataset_id)
 );
+CREATE INDEX IF NOT EXISTS datasets_denorm_config_status ON datasets_denorm_config(status);
+CREATE INDEX IF NOT EXISTS datasets_denorm_config_dataset ON datasets_denorm_config(dataset_id);
 
 CREATE TABLE IF NOT EXISTS datasets_source_config (
     id SERIAL PRIMARY KEY,
@@ -96,3 +104,5 @@ CREATE TABLE IF NOT EXISTS datasets_source_config (
     updated_date Date NOT NULL,
     UNIQUE(dataset_id)
 );
+CREATE INDEX IF NOT EXISTS datasets_source_config_status ON datasets_source_config(status);
+CREATE INDEX IF NOT EXISTS datasets_source_config_dataset ON datasets_source_config(dataset_id);

@@ -32,9 +32,6 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   val uniqueEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("unique-events")
   val duplicateEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("duplicate-events")
 
-  override val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
-  val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
-
   // Validation job metrics
   val validationTotalMetricsCount = "validation-total-event-count"
   val validationSuccessMetricsCount = "validation-success-event-count"

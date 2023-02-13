@@ -45,6 +45,9 @@ class DruidRouterStreamTask(config: DruidRouterConfig, kafkaConnector: FlinkKafk
         .setParallelism(config.downstreamOperatorsParallelism)
     })
 
+    dataStream.getSideOutput(config.statsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaStatsTopic))
+      .name(config.processingStatsProducer).uid(config.processingStatsProducer).setParallelism(config.downstreamOperatorsParallelism)
+
     env.execute(config.jobName)
   }
 

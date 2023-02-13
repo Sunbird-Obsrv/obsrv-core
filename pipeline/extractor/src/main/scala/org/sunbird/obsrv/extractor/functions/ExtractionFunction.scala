@@ -1,6 +1,5 @@
 package org.sunbird.obsrv.extractor.functions
 
-import com.google.gson.Gson
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
@@ -9,8 +8,9 @@ import org.sunbird.obsrv.core.exception.ObsrvException
 import org.sunbird.obsrv.core.model.ErrorConstants
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.model.Models.{PData, SystemEvent}
-import org.sunbird.obsrv.core.streaming.{BaseDeduplication, BaseProcessFunction, Metrics, MetricsList}
-import org.sunbird.obsrv.core.util.JSONUtil
+import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
+import org.sunbird.obsrv.core.util.Util.getMutableMap
+import org.sunbird.obsrv.core.util.{JSONUtil, Util}
 import org.sunbird.obsrv.extractor.task.ExtractorConfig
 import org.sunbird.obsrv.model.DatasetModels.Dataset
 import org.sunbird.obsrv.registry.DatasetRegistry
@@ -18,8 +18,7 @@ import org.sunbird.obsrv.registry.DatasetRegistry
 import scala.collection.mutable
 
 class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: DedupEngine = null)(implicit val stringTypeInfo: TypeInformation[String])
-  extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) with BaseDeduplication {
-
+  extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.successEventCount, config.systemEventCount, config.failedEventCount, config.failedExtractionCount,
@@ -39,23 +38,21 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
     metrics.incCounter(config.defaultDatasetID, config.totalEventCount)
-    val datasetId = batchEvent.get("dataset")
+    val datasetId = batchEvent.get(config.CONST_DATASET)
     if (datasetId.isEmpty) {
-      markBatchFailed(batchEvent, ErrorConstants.MISSING_DATASET_ID)
-      context.output(config.failedBatchEventOutputTag, batchEvent)
+      context.output(config.failedBatchEventOutputTag, markBatchFailed(batchEvent, ErrorConstants.MISSING_DATASET_ID))
       metrics.incCounter(config.defaultDatasetID, config.failedExtractionCount)
       return
     }
     val datasetOpt = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
     if (datasetOpt.isEmpty) {
-      markBatchFailed(batchEvent, ErrorConstants.MISSING_DATASET_CONFIGURATION)
-      context.output(config.failedBatchEventOutputTag, batchEvent)
+      context.output(config.failedBatchEventOutputTag, markBatchFailed(batchEvent, ErrorConstants.MISSING_DATASET_CONFIGURATION))
       metrics.incCounter(config.defaultDatasetID, config.failedExtractionCount)
       return
     }
     val dataset = datasetOpt.get
-    val eventAsText = JSONUtil.serialize(batchEvent)
     if (dataset.extractionConfig.isDefined && dataset.extractionConfig.get.isBatchEvent.get) {
+      val eventAsText = JSONUtil.serialize(batchEvent)
       if (dataset.extractionConfig.get.dedupConfig.isDefined && dataset.extractionConfig.get.dedupConfig.get.dropDuplicates.get) {
         val isDup = isDuplicate(dataset.extractionConfig.get.dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
         if (isDup) {
@@ -72,23 +69,22 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
 
   private def skipExtraction(dataset: Dataset, batchEvent: mutable.Map[String, AnyRef], context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                              metrics: Metrics): Unit = {
-    val syncTs = batchEvent.get("syncts").getOrElse(System.currentTimeMillis()).asInstanceOf[Number].longValue()
-    val immutableEvent = batchEvent.get("event")
-    if(immutableEvent.isEmpty || !immutableEvent.get.isInstanceOf[Map[String, AnyRef]]) {
+    val obsrvMeta = batchEvent(config.CONST_OBSRV_META).asInstanceOf[Map[String, AnyRef]]
+    if (!super.containsEvent(batchEvent)) {
       metrics.incCounter(dataset.id, config.failedEventCount)
-      context.output(config.failedEventsOutputTag, markFailed(dataset.id, batchEvent, ErrorConstants.EVENT_MISSING))
+      context.output(config.failedEventsOutputTag, markBatchFailed(batchEvent, ErrorConstants.EVENT_MISSING))
       return
     }
-    val eventData = getMutableMap(immutableEvent.get.asInstanceOf[Map[String, AnyRef]])
-    updateEvent(eventData, syncTs)
+    val eventData = Util.getMutableMap(batchEvent(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
+    updateEvent(eventData, obsrvMeta)
     val eventJson = JSONUtil.serialize(eventData)
     val eventSize = eventJson.getBytes("UTF-8").length
     if (eventSize > config.eventMaxSize) {
       metrics.incCounter(dataset.id, config.failedEventCount)
-      context.output(config.failedEventsOutputTag, markFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED))
+      context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED))
     } else {
       metrics.incCounter(dataset.id, config.skippedExtractionCount)
-      context.output(config.rawEventsOutputTag, markSkipped(dataset.id, eventData))
+      context.output(config.rawEventsOutputTag, markEventSkipped(dataset.id, eventData))
     }
   }
 
@@ -96,18 +92,18 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
                           metrics: Metrics): Unit = {
     try {
       val eventsList = getEventsList(dataset, eventAsText)
-      val syncTs = batchEvent.get("syncts").getOrElse(System.currentTimeMillis()).asInstanceOf[Number].longValue()
+      val obsrvMeta = batchEvent(config.CONST_OBSRV_META).asInstanceOf[Map[String, AnyRef]]
       eventsList.foreach(immutableEvent => {
         val eventData = getMutableMap(immutableEvent)
-        updateEvent(eventData, syncTs)
+        updateEvent(eventData, obsrvMeta)
         val eventJson = JSONUtil.serialize(eventData)
         val eventSize = eventJson.getBytes("UTF-8").length
         if (eventSize > config.eventMaxSize) {
           metrics.incCounter(dataset.id, config.failedEventCount)
-          context.output(config.failedEventsOutputTag, markFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED))
+          context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED))
         } else {
           metrics.incCounter(dataset.id, config.successEventCount)
-          context.output(config.rawEventsOutputTag, markSuccess(dataset.id, eventData))
+          context.output(config.rawEventsOutputTag, markEventSuccess(dataset.id, eventData))
         }
       })
       context.output(config.systemEventsOutputTag, JSONUtil.serialize(generateSystemEvent(dataset.id, eventsList.size)))
@@ -133,8 +129,8 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
     }
   }
 
-  private def updateEvent(event: mutable.Map[String, AnyRef], syncts: Long) = {
-    event.put("syncts", syncts.asInstanceOf[AnyRef])
+  private def updateEvent(event: mutable.Map[String, AnyRef], obsrvMeta: Map[String, AnyRef]) = {
+    event.put(config.CONST_OBSRV_META, obsrvMeta)
   }
 
   /**
@@ -147,33 +143,32 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
   /**
    * Method Mark the event as failure by adding (ex_processed -> false) and metadata.
    */
-  private def markFailed(dataset: String, event: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
-    addError(event, Map("src" -> config.jobName, "error_code" -> error.errorCode, "error_msg" -> error.errorMsg))
-    addFlags(event, Map("extraction_processed" -> "no"))
-    createWrapperEvent(dataset, event)
-  }
-
-  private def markBatchFailed(batchEvent: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
-    addFlags(batchEvent, Map("extraction_processed" -> "no"))
-    addError(batchEvent, Map("src" -> config.jobName, "error_code" -> error.errorCode, "error_msg" -> error.errorMsg))
-    batchEvent
-  }
-
-  private def markSuccess(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+  private def markEventFailed(dataset: String, event: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
     val wrapperEvent = createWrapperEvent(dataset, event)
-    addFlags(wrapperEvent, Map("extraction_processed" -> "yes"))
+    super.markFailed(wrapperEvent, error, config.jobName)
     wrapperEvent
   }
 
-  private def markSkipped(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+  private def markBatchFailed(batchEvent: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
+    super.markFailed(batchEvent, error, config.jobName)
+    batchEvent
+  }
+
+  private def markEventSuccess(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
     val wrapperEvent = createWrapperEvent(dataset, event)
-    addFlags(wrapperEvent, Map("extraction_processed" -> "skipped"))
+    super.markSuccess(wrapperEvent, config.jobName)
+    wrapperEvent
+  }
+
+  private def markEventSkipped(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+    val wrapperEvent = createWrapperEvent(dataset, event)
+    super.markSkipped(wrapperEvent, config.jobName)
     wrapperEvent
   }
 
 
   private def createWrapperEvent(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    mutable.Map("dataset" -> dataset, "event" -> event)
+    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> event)
   }
 }
 

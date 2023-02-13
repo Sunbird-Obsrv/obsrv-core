@@ -5,7 +5,6 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.slf4j.LoggerFactory
-import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.streaming.{Metrics, MetricsList, WindowBaseProcessFunction}
 import org.sunbird.obsrv.denormalizer.task.DenormalizerConfig
 import org.sunbird.obsrv.denormalizer.util._
@@ -43,7 +42,7 @@ class DenormalizerWindowFunction(config: DenormalizerConfig)(implicit val eventT
 
     val eventsList = elements.asScala.toList
     val msg = eventsList.head
-    val datasetId = msg("dataset").asInstanceOf[String] // DatasetId cannot be empty at this stage
+    val datasetId = msg(config.CONST_DATASET).asInstanceOf[String] // DatasetId cannot be empty at this stage
     metrics.incCounter(datasetId, config.denormTotal, eventsList.size.toLong)
     val dataset = DatasetRegistry.getDataset(datasetId).get
     val denormEvents = eventsList.map(msg => {
@@ -55,7 +54,7 @@ class DenormalizerWindowFunction(config: DenormalizerConfig)(implicit val eventT
     } else {
       metrics.incCounter(datasetId, config.eventsSkipped, eventsList.size.toLong)
       eventsList.foreach(msg => {
-        context.output(config.denormEventsTag, markSkipped(msg))
+        context.output(config.denormEventsTag, markSkipped(msg, config.jobName))
       })
     }
   }
@@ -69,28 +68,11 @@ class DenormalizerWindowFunction(config: DenormalizerConfig)(implicit val eventT
     denormEvents.foreach(denormEvent => {
       if (denormEvent.error.isEmpty) {
         metrics.incCounter(datasetId, config.denormSuccess)
-        context.output(config.denormEventsTag, markSuccess(denormEvent.msg))
+        context.output(config.denormEventsTag, markSuccess(denormEvent.msg, config.jobName))
       } else {
         metrics.incCounter(datasetId, config.denormFailed)
-        context.output(config.denormFailedTag, markFailed(denormEvent.msg, denormEvent.error.get))
+        context.output(config.denormFailedTag, markFailed(denormEvent.msg, denormEvent.error.get, config.jobName))
       }
     })
   }
-
-  private def markSkipped(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("denorm_processed" -> "skipped"))
-    event
-  }
-
-  private def markFailed(event: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("denorm_processed" -> "no"))
-    addError(event, Map("src" -> config.jobName, "error_code" -> error.errorCode, "error_msg" -> error.errorMsg))
-    event
-  }
-
-  private def markSuccess(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("denorm_processed" -> "yes"))
-    event
-  }
-
 }

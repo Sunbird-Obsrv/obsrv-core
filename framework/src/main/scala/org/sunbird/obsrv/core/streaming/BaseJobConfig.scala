@@ -16,14 +16,14 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
 
   implicit val metricTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
-  val defaultDatasetID = SystemConfig.defaultDatasetId;
-  val kafkaProducerBrokerServers: String = config.getString("kafka.producer.broker-servers")
-  val kafkaConsumerBrokerServers: String = config.getString("kafka.consumer.broker-servers")
+  val defaultDatasetID: String = SystemConfig.defaultDatasetId
+  private val kafkaProducerBrokerServers: String = config.getString("kafka.producer.broker-servers")
+  private val kafkaConsumerBrokerServers: String = config.getString("kafka.consumer.broker-servers")
   // Producer Properties
-  val kafkaProducerMaxRequestSize: Int = config.getInt("kafka.producer.max-request-size")
-  val kafkaProducerBatchSize: Int = config.getInt("kafka.producer.batch.size")
-  val kafkaProducerLingerMs: Int = config.getInt("kafka.producer.linger.ms")
-  val kafkaProducerCompression: String = if (config.hasPath("kafka.producer.compression")) config.getString("kafka.producer.compression") else "snappy"
+  private val kafkaProducerMaxRequestSize: Int = config.getInt("kafka.producer.max-request-size")
+  private val kafkaProducerBatchSize: Int = config.getInt("kafka.producer.batch.size")
+  private val kafkaProducerLingerMs: Int = config.getInt("kafka.producer.linger.ms")
+  private val kafkaProducerCompression: String = if (config.hasPath("kafka.producer.compression")) config.getString("kafka.producer.compression") else "snappy"
   val groupId: String = config.getString("kafka.groupId")
   val restartAttempts: Int = config.getInt("task.restart-strategy.attempts")
   val delayBetweenAttempts: Long = config.getLong("task.restart-strategy.delay")
@@ -31,12 +31,12 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
   val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
   val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
   // Only for Tests
-  val kafkaAutoOffsetReset: Option[String] = if (config.hasPath("kafka.auto.offset.reset")) Option(config.getString("kafka.auto.offset.reset")) else None
+  private val kafkaAutoOffsetReset: Option[String] = if (config.hasPath("kafka.auto.offset.reset")) Option(config.getString("kafka.auto.offset.reset")) else None
 
   // Redis
   val redisHost: String = Option(config.getString("redis.host")).getOrElse("localhost")
   val redisPort: Int = Option(config.getInt("redis.port")).getOrElse(6379)
-  val redisConnectionTimeout: Int = Option(config.getInt("redisdb.connection.timeout")).getOrElse(30000)
+  val redisConnectionTimeout: Int = Option(config.getInt("redis.connection.timeout")).getOrElse(30000)
 
   val systemEventCount = "system-event-count"
   val kafkaSystemTopic: String = config.getString("kafka.output.system.event.topic")
@@ -64,10 +64,15 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
   def kafkaProducerProperties: Properties = {
     val properties = new Properties()
     properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaProducerBrokerServers)
-    properties.put(ProducerConfig.LINGER_MS_CONFIG, new Integer(kafkaProducerLingerMs))
-    properties.put(ProducerConfig.BATCH_SIZE_CONFIG, new Integer(kafkaProducerBatchSize))
+    properties.put(ProducerConfig.LINGER_MS_CONFIG, Integer.valueOf(kafkaProducerLingerMs))
+    properties.put(ProducerConfig.BATCH_SIZE_CONFIG, Integer.valueOf(kafkaProducerBatchSize))
     properties.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, kafkaProducerCompression)
-    properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, new Integer(kafkaProducerMaxRequestSize))
+    properties.put(ProducerConfig.MAX_REQUEST_SIZE_CONFIG, Integer.valueOf(kafkaProducerMaxRequestSize))
     properties
   }
+
+  // String Constants
+  val CONST_OBSRV_META = "obsrv_meta"
+  val CONST_DATASET = "dataset"
+  val CONST_EVENT = "event"
 }

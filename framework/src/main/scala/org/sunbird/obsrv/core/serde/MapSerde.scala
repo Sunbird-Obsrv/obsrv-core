@@ -2,7 +2,6 @@ package org.sunbird.obsrv.core.serde
 
 import java.nio.charset.StandardCharsets
 
-import com.google.gson.Gson
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.streaming.connectors.kafka.{KafkaDeserializationSchema, KafkaSerializationSchema}
@@ -18,7 +17,21 @@ class MapDeserializationSchema extends KafkaDeserializationSchema[mutable.Map[St
   override def isEndOfStream(nextElement: mutable.Map[String, AnyRef]): Boolean = false
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]]): mutable.Map[String, AnyRef] = {
-    JSONUtil.deserialize[mutable.Map[String, AnyRef]](record.value())
+
+    val msg = JSONUtil.deserialize[mutable.Map[String, AnyRef]](record.value())
+    initObsrvMeta(msg, record)
+    msg
+  }
+
+  private def initObsrvMeta(msg: mutable.Map[String, AnyRef], record: ConsumerRecord[Array[Byte], Array[Byte]]): Unit = {
+    if(!msg.contains("obsrv_meta")) {
+      msg.put("obsrv_meta", Map(
+        "syncts" -> record.timestamp(),
+        "flags" -> Map(),
+        "timespans" -> Map(),
+        "error" -> Map()
+      ))
+    }
   }
 
   override def getProducedType: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])

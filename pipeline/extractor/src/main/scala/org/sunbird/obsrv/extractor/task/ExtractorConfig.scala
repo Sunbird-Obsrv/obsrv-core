@@ -26,9 +26,6 @@ class ExtractorConfig(override val config: Config) extends BaseJobConfig(config,
   val kafkaBatchFailedTopic: String = config.getString("kafka.output.batch.failed.topic")
   val eventMaxSize: Long = SystemConfig.maxEventSize
 
-  override val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
-  val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
-
   private val RAW_EVENTS_OUTPUT_TAG = "raw-events"
   private val FAILED_EVENTS_OUTPUT_TAG = "failed-events"
   private val FAILED_BATCH_EVENTS_OUTPUT_TAG = "failed-batch-events"

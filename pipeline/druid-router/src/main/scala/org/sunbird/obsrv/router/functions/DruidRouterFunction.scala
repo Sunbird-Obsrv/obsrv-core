@@ -6,6 +6,7 @@ import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.OutputTag
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
+import org.sunbird.obsrv.core.util.Util
 import org.sunbird.obsrv.registry.DatasetRegistry
 import org.sunbird.obsrv.router.task.DruidRouterConfig
 
@@ -33,12 +34,15 @@ class DruidRouterFunction(config: DruidRouterConfig)(implicit val eventTypeInfo:
                               ctx: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
 
-    val datasetId = msg("dataset").asInstanceOf[String] // DatasetId cannot be empty at this stage
+    val datasetId = msg(config.CONST_DATASET).asInstanceOf[String] // DatasetId cannot be empty at this stage
     metrics.incCounter(datasetId, config.routerTotalCount)
     val dataset = DatasetRegistry.getDataset(datasetId).get
-    val event = getMutableMap(msg("event").asInstanceOf[Map[String, AnyRef]])
+    val event = Util.getMutableMap(msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
     val routerConfig = dataset.routerConfig
     ctx.output(OutputTag[mutable.Map[String, AnyRef]](routerConfig.topic), event)
     metrics.incCounter(datasetId, config.routerSuccessCount)
+
+    msg.remove(config.CONST_EVENT)
+    ctx.output(config.statsOutputTag, markComplete(msg))
   }
 }

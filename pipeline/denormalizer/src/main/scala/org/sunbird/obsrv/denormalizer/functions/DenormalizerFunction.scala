@@ -5,8 +5,8 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.exception.ObsrvException
-import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
+import org.sunbird.obsrv.core.util.Util
 import org.sunbird.obsrv.denormalizer.task.DenormalizerConfig
 import org.sunbird.obsrv.denormalizer.util.DenormCache
 import org.sunbird.obsrv.registry.DatasetRegistry
@@ -40,41 +40,25 @@ class DenormalizerFunction(config: DenormalizerConfig)(implicit val mapTypeInfo:
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
 
-    val datasetId = msg("dataset").asInstanceOf[String] // DatasetId cannot be empty at this stage
+    val datasetId = msg(config.CONST_DATASET).asInstanceOf[String] // DatasetId cannot be empty at this stage
     metrics.incCounter(datasetId, config.denormTotal)
     val dataset = DatasetRegistry.getDataset(datasetId).get
-    val event = getMutableMap(msg("event").asInstanceOf[Map[String, AnyRef]])
+    val event = Util.getMutableMap(msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
 
     if (dataset.denormConfig.isDefined) {
       try {
-        msg.put("event", denormCache.denormEvent(datasetId, event, dataset.denormConfig.get.denormFields))
+        msg.put(config.CONST_EVENT, denormCache.denormEvent(datasetId, event, dataset.denormConfig.get.denormFields))
         metrics.incCounter(datasetId, config.denormSuccess)
-        context.output(config.denormEventsTag, markSuccess(msg))
+        context.output(config.denormEventsTag, markSuccess(msg, config.jobName))
       } catch {
         case ex: ObsrvException =>
           metrics.incCounter(datasetId, config.denormFailed)
-          context.output(config.denormFailedTag, markFailed(msg, ex.error))
+          context.output(config.denormFailedTag, markFailed(msg, ex.error, config.jobName))
       }
     } else {
       metrics.incCounter(datasetId, config.eventsSkipped)
-      context.output(config.denormEventsTag, markSkipped(msg))
+      context.output(config.denormEventsTag, markSkipped(msg, config.jobName))
     }
-
   }
 
-  private def markSkipped(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("denorm_processed" -> "skipped"))
-    event
-  }
-
-  private def markFailed(event: mutable.Map[String, AnyRef], error: Error): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("denorm_processed" -> "no"))
-    addError(event, Map("src" -> config.jobName, "error_code" -> error.errorCode, "error_msg" -> error.errorMsg))
-    event
-  }
-
-  private def markSuccess(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("denorm_processed" -> "yes"))
-    event
-  }
 }

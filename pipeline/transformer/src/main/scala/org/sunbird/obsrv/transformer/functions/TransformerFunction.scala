@@ -26,29 +26,19 @@ class TransformerFunction(config: TransformerConfig)(implicit val eventTypeInfo:
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
 
-    val datasetId = msg("dataset").asInstanceOf[String] // DatasetId cannot be empty at this stage
+    val datasetId = msg(config.CONST_DATASET).asInstanceOf[String] // DatasetId cannot be empty at this stage
     metrics.incCounter(datasetId, config.totalEventCount)
 
     val datasetTransformations = DatasetRegistry.getDatasetTransformations(datasetId)
     if(datasetTransformations.isDefined) {
       // TODO: Perform transformations
       metrics.incCounter(datasetId, config.transformSuccessCount)
-      context.output(config.transformerOutputTag, markSuccess(msg))
+      context.output(config.transformerOutputTag, markSuccess(msg, config.jobName))
     } else {
       metrics.incCounter(datasetId, config.transformSkippedCount)
-      context.output(config.transformerOutputTag, markSkipped(msg))
+      context.output(config.transformerOutputTag, markSkipped(msg, config.jobName))
     }
 
-  }
-
-  private def markSkipped(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("transformer_processed" -> "skipped"))
-    event
-  }
-
-  private def markSuccess(event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    addFlags(event, Map("transformer_processed" -> "yes"))
-    event
   }
 
 }

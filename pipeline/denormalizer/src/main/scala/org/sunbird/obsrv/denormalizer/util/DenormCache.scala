@@ -8,10 +8,9 @@ import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.util.{JSONUtil, Util}
 import org.sunbird.obsrv.denormalizer.task.DenormalizerConfig
 import org.sunbird.obsrv.model.DatasetModels.{Dataset, DenormFieldConfig}
+import redis.clients.jedis.{Pipeline, Response}
 
 import scala.collection.mutable
-import redis.clients.jedis.Pipeline
-import redis.clients.jedis.Response
 
 case class DenormEvent(msg: mutable.Map[String, AnyRef], var responses: Option[mutable.Map[String, Response[String]]], var error: Option[Error])
 
@@ -35,10 +34,10 @@ class DenormCache(val config: DenormalizerConfig) {
     })
   }
 
-  def denormEvent(datasetId: String, event: mutable.Map[String, AnyRef], denormFieldConfigs: List[DenormFieldConfig]):mutable.Map[String, AnyRef] = {
+  def denormEvent(datasetId: String, event: mutable.Map[String, AnyRef], denormFieldConfigs: List[DenormFieldConfig]): mutable.Map[String, AnyRef] = {
     val pipeline = this.datasetPipelineMap(datasetId)
     pipeline.clear()
-    val responses : mutable.Map[String, Response[String]] = mutable.Map[String, Response[String]]()
+    val responses: mutable.Map[String, Response[String]] = mutable.Map[String, Response[String]]()
     val eventStr = JSONUtil.serialize(event)
     denormFieldConfigs.foreach(fieldConfig => {
       responses.put(fieldConfig.denormOutField, getFromCache(pipeline, fieldConfig, eventStr))
@@ -53,7 +52,7 @@ class DenormCache(val config: DenormalizerConfig) {
 
     events.foreach(denormEvent => {
       val responses: mutable.Map[String, Response[String]] = mutable.Map[String, Response[String]]()
-      val event = Util.getMutableMap(denormEvent.msg("event").asInstanceOf[Map[String, AnyRef]])
+      val event = Util.getMutableMap(denormEvent.msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
       val eventStr = JSONUtil.serialize(event)
       try {
         denormFieldConfigs.foreach(fieldConfig => {
@@ -74,10 +73,10 @@ class DenormCache(val config: DenormalizerConfig) {
   private def getFromCache(pipeline: Pipeline, fieldConfig: DenormFieldConfig, eventStr: String): Response[String] = {
     pipeline.select(fieldConfig.redisDB)
     val denormFieldNode = JSONUtil.getKey(fieldConfig.denormKey, eventStr)
-    if(denormFieldNode.isMissingNode) {
+    if (denormFieldNode.isMissingNode) {
       throw new ObsrvException(ErrorConstants.DENORM_KEY_MISSING)
     }
-    if(!denormFieldNode.isTextual) {
+    if (!denormFieldNode.isTextual) {
       throw new ObsrvException(ErrorConstants.DENORM_KEY_NOT_A_STRING)
     }
     val denormField = denormFieldNode.asText()
@@ -92,22 +91,20 @@ class DenormCache(val config: DenormalizerConfig) {
     event
   }
 
-  private def updateMultipleEvents(events: List[DenormEvent]):List[DenormEvent] = {
+  private def updateMultipleEvents(events: List[DenormEvent]): List[DenormEvent] = {
 
     events.map(denormEvent => {
-      if(denormEvent.responses.isDefined) {
-        val event = Util.getMutableMap(denormEvent.msg("event").asInstanceOf[Map[String, AnyRef]])
+      if (denormEvent.responses.isDefined) {
+        val event = Util.getMutableMap(denormEvent.msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
         denormEvent.responses.get.map(f => {
-          if(f._2.get() != null) {
+          if (f._2.get() != null) {
             event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
           }
         })
-        denormEvent.msg.put("event", event)
+        denormEvent.msg.put(config.CONST_EVENT, event)
       }
       denormEvent
     })
   }
 
 }
-
-// $COVERAGE-ON$
