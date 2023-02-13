@@ -55,7 +55,7 @@ object EventFixture {
       |  restart-strategy.delay = 1000 # in milli-seconds
       |}
       |
-      |redisdb.connection.timeout = 30000
+      |redis.connection.timeout = 30000
       |
       |redis {
       |  host = 127.0.0.1
