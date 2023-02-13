@@ -62,7 +62,7 @@ object DatasetRegistry {
     val validationConfig = rs.getString("validation_config")
     val extractionConfig = rs.getString("extraction_config")
     val dedupConfig = rs.getString("dedup_config")
-    val jsonSchema = rs.getString("json_schema")
+    val jsonSchema = rs.getString("data_schema")
     val denormConfig = rs.getString("denorm_config")
     val routerConfig = rs.getString("router_config")
 

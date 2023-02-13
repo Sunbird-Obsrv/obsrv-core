@@ -32,7 +32,7 @@ object DatasetModels {
 
   case class Dataset(@JsonProperty("id") id: String, @JsonProperty("extraction_config") extractionConfig: Option[ExtractionConfig],
                      @JsonProperty("dedup_config") dedupConfig: Option[DedupConfig], @JsonProperty("validation_config") validationConfig: Option[ValidationConfig],
-                     @JsonProperty("topic") jsonSchema: Option[String], @JsonProperty("denorm_config") denormConfig: Option[DenormConfig],
+                     @JsonProperty("data_schema") jsonSchema: Option[String], @JsonProperty("denorm_config") denormConfig: Option[DenormConfig],
                      @JsonProperty("router_config") routerConfig: RouterConfig);
 
   case class Datasource(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
