@@ -14,7 +14,6 @@ class PostgresConnect(config: PostgresConnectionConfig) {
   private var connection: Connection = source.getConnection
   private var statement: Statement = connection.createStatement
 
-
   @throws[Exception]
   private def buildPoolConfig(): Unit = {
     Class.forName("org.postgresql.Driver")

@@ -33,16 +33,17 @@ object DatasetModels {
   case class Dataset(@JsonProperty("id") id: String, @JsonProperty("extraction_config") extractionConfig: Option[ExtractionConfig],
                      @JsonProperty("dedup_config") dedupConfig: Option[DedupConfig], @JsonProperty("validation_config") validationConfig: Option[ValidationConfig],
                      @JsonProperty("data_schema") jsonSchema: Option[String], @JsonProperty("denorm_config") denormConfig: Option[DenormConfig],
-                     @JsonProperty("router_config") routerConfig: RouterConfig);
+                     @JsonProperty("router_config") routerConfig: RouterConfig, @JsonProperty("status") status: String)
 
   case class Datasource(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
                         @JsonProperty("ingestion_spec") ingestionSpec: String, @JsonProperty("datasource") datasource: String,
                         @JsonProperty("retention_policy") retentionPolicy: Option[String], @JsonProperty("archival_policy") archivalPolicy: Option[String],
-                        @JsonProperty("purge_policy") purgePolicy: Option[String], @JsonProperty("backup_config") backupConfig: Option[String])
+                        @JsonProperty("purge_policy") purgePolicy: Option[String], @JsonProperty("backup_config") backupConfig: Option[String],
+                        @JsonProperty("status") status: String)
 
   case class DatasetTransformation(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
                                    @JsonProperty("field_key") fieldKey: String, @JsonProperty("transformation_function") transformationFunction: String,
-                                   @JsonProperty("field_out_key") fieldOutKey: String)
+                                   @JsonProperty("field_out_key") fieldOutKey: String, @JsonProperty("status") status: String)
 
 
 }

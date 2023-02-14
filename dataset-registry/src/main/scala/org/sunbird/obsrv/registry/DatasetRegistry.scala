@@ -1,92 +1,18 @@
 package org.sunbird.obsrv.registry
 
-import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, ValidationConfig}
-import com.typesafe.config.ConfigFactory
-import org.sunbird.obsrv.core.util.{JSONUtil, PostgresConnect, PostgresConnectionConfig}
-
-import java.sql.ResultSet
+import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetTransformation}
+import org.sunbird.obsrv.service.DatasetRegistryService
 
 object DatasetRegistry {
 
-
-  private val config = ConfigFactory.load("base-config.conf")
-  private val postgresConfig = PostgresConnectionConfig(config.getString("postgres.user"), config.getString("postgres.password"),
-    config.getString("postgres.database"), config.getString("postgres.host"), config.getInt("postgres.port"),
-    config.getInt("postgres.maxConnections"))
-  private val datasets: Map[String, Dataset] = readAllDatasets()
-  private val datasetTransformations: Map[String, List[DatasetTransformation]] = readAllDatasetTransformations()
+  private val datasets: Map[String, Dataset] = DatasetRegistryService.readAllDatasets()
+  private val datasetTransformations: Map[String, List[DatasetTransformation]] = DatasetRegistryService.readAllDatasetTransformations()
 
   def getAllDatasets(): List[Dataset] = {
     datasets.values.toList
   }
 
-  private def readAllDatasets(): Map[String, Dataset] = {
-
-    val postgresConnect = new PostgresConnect(postgresConfig)
-    try {
-      val rs = postgresConnect.executeQuery("SELECT * FROM datasets")
-      Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
-        val dataset = parseDataset(result)
-        (dataset.id, dataset)
-      }).toMap
-    } catch {
-      case ex: Exception =>
-        ex.printStackTrace()
-        Map()
-    } finally {
-      postgresConnect.closeConnection()
-    }
-  }
-
-  private def readAllDatasetTransformations(): Map[String, List[DatasetTransformation]] = {
-
-    val postgresConnect = new PostgresConnect(postgresConfig)
-    try {
-      val rs = postgresConnect.executeQuery("SELECT * FROM dataset_transformations")
-      Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
-        val dataset = parseDatasetTransformation(result)
-        (dataset.id, dataset)
-      }).toMap.groupBy(f => f._1).mapValues(f => f.values.toList)
-    } catch {
-      case ex: Exception =>
-        ex.printStackTrace()
-        Map()
-    } finally {
-      postgresConnect.closeConnection()
-    }
-  }
-
-
-  private def parseDataset(rs: ResultSet): Dataset = {
-    val datasetId = rs.getString("id")
-    val validationConfig = rs.getString("validation_config")
-    val extractionConfig = rs.getString("extraction_config")
-    val dedupConfig = rs.getString("dedup_config")
-    val jsonSchema = rs.getString("data_schema")
-    val denormConfig = rs.getString("denorm_config")
-    val routerConfig = rs.getString("router_config")
-
-    Dataset(datasetId,
-      if(extractionConfig == null)  None else Some(JSONUtil.deserialize[ExtractionConfig](extractionConfig)),
-      if(dedupConfig == null)  None else Some(JSONUtil.deserialize[DedupConfig](dedupConfig)),
-      if(validationConfig == null)  None else Some(JSONUtil.deserialize[ValidationConfig](validationConfig)),
-      if(jsonSchema == null)  None else Some(jsonSchema),
-      if(denormConfig == null)  None else Some(JSONUtil.deserialize[DenormConfig](denormConfig)),
-      JSONUtil.deserialize[RouterConfig](routerConfig)
-    )
-  }
-
-  private def parseDatasetTransformation(rs: ResultSet): DatasetTransformation = {
-    val id = rs.getString("id")
-    val datasetId = rs.getString("dataset_id")
-    val fieldKey = rs.getString("field_key")
-    val transformationFunction = rs.getString("transformation_function")
-    val fieldOutKey = rs.getString("field_out_key")
-
-    DatasetTransformation(id, datasetId, fieldKey, transformationFunction, fieldOutKey)
-  }
-  
-  def getDataset(id:String) : Option[Dataset] = {
+  def getDataset(id: String): Option[Dataset] = {
     datasets.get(id)
   }
 
@@ -98,10 +24,4 @@ object DatasetRegistry {
     datasets.keySet.toList
   }
 
-}
-
-object TestDatasetRegistry {
-  def main(args: Array[String]): Unit = {
-    Console.println(DatasetRegistry.getDataset("obs2.0").get.denormConfig.get)
-  }
 }

@@ -48,30 +48,6 @@ CREATE TABLE IF NOT EXISTS dataset_transformations (
 CREATE INDEX IF NOT EXISTS dataset_transformations_status ON dataset_transformations(status);
 CREATE INDEX IF NOT EXISTS dataset_transformations_dataset ON dataset_transformations(dataset_id);
 
-CREATE TABLE IF NOT EXISTS cloud_backup_config (
-    id text PRIMARY KEY,
-    dataset_id text NULL REFERENCES datasets (id),
-    consumer_group text NOT NULL,
-    service_name text NOT NULL,
-    base_path text NOT NULL,
-    timestamp_key text NOT NULL,
-    fallback_timestamp_key text NOT NULL,
-    topic text NOT NULL,
-    max_file_size INT,
-    max_file_age INT,
-    partition_prefix_enabled boolean,
-    partition_prefix_key text,
-    partition_prefix_mapping text,
-    output_file_pattern text NOT NULL,
-    message_parser text NOT NULL,
-    monitoring_config json,
-    status text NOT NULL,
-    created_by text NOT NULL,
-    updated_by text NOT NULL,
-    created_date Date NOT NULL,
-    updated_date Date NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS datasets_denorm_config (
     id SERIAL PRIMARY KEY,
     field_key text NOT NULL,
