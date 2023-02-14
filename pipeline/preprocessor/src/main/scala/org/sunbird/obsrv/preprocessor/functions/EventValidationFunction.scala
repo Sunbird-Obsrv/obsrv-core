@@ -33,6 +33,7 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
     super.open(parameters)
     if (schemaValidator == null) {
       schemaValidator = new SchemaValidator(config)
+      schemaValidator.loadDataSchemas(DatasetRegistry.getAllDatasets())
     }
   }
 
@@ -68,7 +69,7 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
       validateEvent(dataset, msg, context, metrics)
     } else {
       metrics.incCounter(dataset.id, config.validationSkipMetricsCount)
-      context.output(config.validEventsOutputTag, markSkipped(msg, config.jobName))
+      context.output(config.validEventsOutputTag, markSkipped(msg, "EventValidation"))
     }
   }
 
@@ -89,14 +90,14 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
     } catch {
       case ex: ObsrvException =>
         metrics.incCounter(dataset.id, config.validationFailureMetricsCount)
-        context.output(config.failedEventsOutputTag, markFailed(msg, ex.error, config.jobName))
+        context.output(config.failedEventsOutputTag, markFailed(msg, ex.error, "EventValidation"))
     }
   }
 
   private def onValidationSuccess(dataset: Dataset, event: mutable.Map[String, AnyRef], metrics: Metrics,
                                   context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context): Unit = {
     metrics.incCounter(dataset.id, config.validationSuccessMetricsCount)
-    context.output(config.validEventsOutputTag, markSuccess(event, config.jobName))
+    context.output(config.validEventsOutputTag, markSuccess(event, "EventValidation"))
   }
 
   private def onValidationFailure(dataset: Dataset, event: mutable.Map[String, AnyRef], metrics: Metrics,
@@ -104,7 +105,7 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
                                   validationReport: ProcessingReport): Unit = {
     val failedErrorMsg = schemaValidator.getInvalidFieldName(validationReport.toString)
     metrics.incCounter(dataset.id, config.validationFailureMetricsCount)
-    context.output(config.invalidEventsOutputTag, markFailed(event, ErrorConstants.SCHEMA_VALIDATION_FAILED, config.jobName))
+    context.output(config.invalidEventsOutputTag, markFailed(event, ErrorConstants.SCHEMA_VALIDATION_FAILED, "EventValidation"))
     val systemEvent = SystemEvent(PData(config.jobName, "flink", "validation"), Map("error_code" -> ErrorConstants.SCHEMA_VALIDATION_FAILED.errorCode, "error_msg" -> failedErrorMsg))
     context.output(config.systemEventsOutputTag, JSONUtil.serialize(systemEvent))
   }

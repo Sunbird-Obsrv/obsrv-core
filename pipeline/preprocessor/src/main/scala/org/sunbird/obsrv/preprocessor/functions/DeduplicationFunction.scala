@@ -53,7 +53,7 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig, @transient var d
     }
     val datasetOpt = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
     if (datasetOpt.isEmpty) {
-      context.output(config.failedEventsOutputTag, markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION, config.jobName))
+      context.output(config.failedEventsOutputTag, markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION, "Deduplication"))
       metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
       return
     }
@@ -65,8 +65,10 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig, @transient var d
       val isDup = isDuplicate(dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
       if (isDup) {
         metrics.incCounter(dataset.id, config.duplicationEventMetricsCount)
-        context.output(config.duplicateEventsOutputTag, markFailed(msg, ErrorConstants.DUPLICATE_EVENT_FOUND, config.jobName))
-        return
+        context.output(config.duplicateEventsOutputTag, markFailed(msg, ErrorConstants.DUPLICATE_EVENT_FOUND, "Deduplication"))
+      } else {
+        metrics.incCounter(dataset.id, config.duplicationProcessedEventMetricsCount)
+        context.output(config.uniqueEventsOutputTag, markSuccess(msg, "Deduplication"))
       }
     } else {
       metrics.incCounter(dataset.id, config.duplicationSkippedEventMetricsCount)

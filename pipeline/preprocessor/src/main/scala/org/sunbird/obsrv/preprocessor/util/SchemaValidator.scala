@@ -18,13 +18,26 @@ class SchemaValidator(config: PipelinePreprocessorConfig) extends java.io.Serial
 
   private val serialVersionUID = 8780940932759659175L
   private[this] val logger = LoggerFactory.getLogger(classOf[SchemaValidator])
-  private[this] val schemaMap = mutable.Map[String, JsonSchema]()
+  private[this] val schemaMap = mutable.Map[String, (JsonSchema, Boolean)]()
+
+  def loadDataSchemas(datasets: List[Dataset]) = {
+    datasets.foreach(dataset => {
+      if(dataset.jsonSchema.isDefined) {
+        try {
+          loadJsonSchema(dataset.id, dataset.jsonSchema.get)
+        } catch {
+          case ex: ObsrvException => ex.printStackTrace()
+            schemaMap.put(dataset.id, (null, false))
+        }
+      }
+    })
+  }
 
   private def loadJsonSchema(datasetId: String, jsonSchemaStr: String) = {
     val schemaFactory = JsonSchemaFactory.byDefault
     try {
       val jsonSchema = schemaFactory.getJsonSchema(JsonLoader.fromString(jsonSchemaStr))
-      schemaMap.put(datasetId, jsonSchema)
+      schemaMap.put(datasetId, (jsonSchema, true))
     } catch {
       case ex: Exception =>
         // TODO: create system event for the error trace
@@ -33,21 +46,17 @@ class SchemaValidator(config: PipelinePreprocessorConfig) extends java.io.Serial
   }
 
   def schemaFileExists(dataset: Dataset): Boolean = {
-    if (schemaMap.contains(dataset.id)) {
-      return true
-    }
+
     if (dataset.jsonSchema.isEmpty) {
       throw new ObsrvException(ErrorConstants.JSON_SCHEMA_NOT_FOUND)
-    } else {
-      loadJsonSchema(dataset.id, dataset.jsonSchema.get)
-      true
     }
+    schemaMap.get(dataset.id).map(f => f._2).orElse(Some(false)).get
   }
 
   @throws[IOException]
   @throws[ProcessingException]
   def validate(datasetId: String, event: Map[String, AnyRef]): ProcessingReport = {
-    schemaMap(datasetId).validate(JSONUtil.convertValue(event))
+    schemaMap(datasetId)._1.validate(JSONUtil.convertValue(event))
   }
 
   def getInvalidFieldName(errorInfo: String): String = {

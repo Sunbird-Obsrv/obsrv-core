@@ -72,8 +72,10 @@ trait BaseFunction {
     } else {
       obsrvMeta("syncts").asInstanceOf[Long]
     }
-    val span = System.currentTimeMillis() - prevTS
-    obsrvMeta.put("timespans", obsrvMeta("flags").asInstanceOf[Map[String, AnyRef]] ++ Map(jobName -> span))
+    val currentTS = System.currentTimeMillis()
+    val span = currentTS - prevTS
+    obsrvMeta.put("timespans", obsrvMeta("timespans").asInstanceOf[Map[String, AnyRef]] ++ Map(jobName -> span))
+    obsrvMeta.put("prevProcessingTime", currentTS.asInstanceOf[AnyRef])
   }
 
   def markFailed(event: mutable.Map[String, AnyRef], error: Error, jobName: String): mutable.Map[String, AnyRef] = {
@@ -81,7 +83,7 @@ trait BaseFunction {
     addError(obsrvMeta, Map("src" -> jobName, "error_code" -> error.errorCode, "error_msg" -> error.errorMsg))
     addFlags(obsrvMeta, Map(jobName -> "failed"))
     addTimespan(obsrvMeta, jobName)
-    event.put("obsrv_meta", obsrvMeta)
+    event.put("obsrv_meta", obsrvMeta.toMap)
     event
   }
 
@@ -89,7 +91,7 @@ trait BaseFunction {
     val obsrvMeta = Util.getMutableMap(event("obsrv_meta").asInstanceOf[Map[String, AnyRef]])
     addFlags(obsrvMeta, Map(jobName -> "skipped"))
     addTimespan(obsrvMeta, jobName)
-    event.put("obsrv_meta", obsrvMeta)
+    event.put("obsrv_meta", obsrvMeta.toMap)
     event
   }
 
@@ -97,7 +99,7 @@ trait BaseFunction {
     val obsrvMeta = Util.getMutableMap(event("obsrv_meta").asInstanceOf[Map[String, AnyRef]])
     addFlags(obsrvMeta, Map(jobName -> "success"))
     addTimespan(obsrvMeta, jobName)
-    event.put("obsrv_meta", obsrvMeta)
+    event.put("obsrv_meta", obsrvMeta.toMap)
     event
   }
 
@@ -105,8 +107,8 @@ trait BaseFunction {
     val obsrvMeta = Util.getMutableMap(event("obsrv_meta").asInstanceOf[Map[String, AnyRef]])
     val syncts = obsrvMeta("syncts").asInstanceOf[Long]
     val span = System.currentTimeMillis() - syncts
-    obsrvMeta.put("timespans", obsrvMeta("flags").asInstanceOf[Map[String, AnyRef]] ++ Map("total_processing_time" -> span))
-    event.put("obsrv_meta", obsrvMeta)
+    obsrvMeta.put("timespans", obsrvMeta("timespans").asInstanceOf[Map[String, AnyRef]] ++ Map("total_processing_time" -> span))
+    event.put("obsrv_meta", obsrvMeta.toMap)
     event
   }
 
@@ -135,7 +137,11 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig) extends ProcessF
   def getMetricsList(): MetricsList
 
   override def processElement(event: T, context: ProcessFunction[T, R]#Context, out: Collector[R]): Unit = {
-    processElement(event, context, metrics)
+    try{
+      processElement(event, context, metrics)
+    } catch {
+      case ex: Exception => ex.printStackTrace()
+    }
   }
 
 }
