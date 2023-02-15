@@ -41,7 +41,9 @@ object DatasetModels {
                         @JsonProperty("purge_policy") purgePolicy: Option[String], @JsonProperty("backup_config") backupConfig: Option[String],
                         @JsonProperty("status") status: String)
 
-  case class TransformationFunction(@JsonProperty("type") `type`: String, @JsonProperty("expr") expr: Option[String])
+  case class Condition(@JsonProperty("type") `type`: String, @JsonProperty("expr") expr: String)
+
+  case class TransformationFunction(@JsonProperty("type") `type`: String, @JsonProperty("condition") condition: Option[Condition], @JsonProperty("expr") expr: Option[String])
 
   case class DatasetTransformation(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
                                    @JsonProperty("field_key") fieldKey: String, @JsonProperty("transformation_function") transformationFunction: TransformationFunction,
