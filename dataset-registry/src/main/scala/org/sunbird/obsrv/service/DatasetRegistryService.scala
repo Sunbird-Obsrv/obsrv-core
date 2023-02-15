@@ -53,9 +53,9 @@ object DatasetRegistryService {
     try {
       val rs = postgresConnect.executeQuery("SELECT * FROM dataset_transformations")
       Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
-        val dataset = parseDatasetTransformation(result)
-        (dataset.id, dataset)
-      }).toMap.groupBy(f => f._1).mapValues(f => f.values.toList)
+        val dt = parseDatasetTransformation(result)
+        (dt.datasetId, dt)
+      }).toList.groupBy(f => f._1).mapValues(f => f.map(x => x._2))
     } catch {
       case ex: Exception =>
         ex.printStackTrace()
