@@ -2,7 +2,7 @@ package org.sunbird.obsrv.service
 
 import com.typesafe.config.ConfigFactory
 import org.sunbird.obsrv.core.util.{JSONUtil, PostgresConnect, PostgresConnectionConfig}
-import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, ValidationConfig}
+import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
 
 import java.sql.ResultSet
 
@@ -95,7 +95,7 @@ object DatasetRegistryService {
     val fieldOutKey = rs.getString("field_out_key")
     val status = rs.getString("status")
 
-    DatasetTransformation(id, datasetId, fieldKey, transformationFunction, fieldOutKey, status)
+    DatasetTransformation(id, datasetId, fieldKey, JSONUtil.deserialize[TransformationFunction](transformationFunction), fieldOutKey, status)
   }
 
 }

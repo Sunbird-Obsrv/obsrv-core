@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS dataset_transformations (
     created_by text NOT NULL,
     updated_by text NOT NULL,
     created_date Date NOT NULL,
-    updated_date Date NOT NULL
+    updated_date Date NOT NULL,
+    UNIQUE(field_key, dataset_id)
 );
 CREATE INDEX IF NOT EXISTS dataset_transformations_status ON dataset_transformations(status);
 CREATE INDEX IF NOT EXISTS dataset_transformations_dataset ON dataset_transformations(dataset_id);
