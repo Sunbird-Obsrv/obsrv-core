@@ -38,7 +38,6 @@ CREATE TABLE IF NOT EXISTS dataset_transformations (
     dataset_id text REFERENCES datasets (id),
     field_key text NOT NULL,
     transformation_function text NOT NULL,
-    field_out_key text NOT NULL,
     status text NOT NULL,
     created_by text NOT NULL,
     updated_by text NOT NULL,

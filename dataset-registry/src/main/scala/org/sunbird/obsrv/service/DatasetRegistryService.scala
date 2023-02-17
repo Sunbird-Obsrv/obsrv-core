@@ -95,7 +95,7 @@ object DatasetRegistryService {
     val fieldOutKey = rs.getString("field_out_key")
     val status = rs.getString("status")
 
-    DatasetTransformation(id, datasetId, fieldKey, JSONUtil.deserialize[TransformationFunction](transformationFunction), fieldOutKey, status)
+    DatasetTransformation(id, datasetId, fieldKey, JSONUtil.deserialize[TransformationFunction](transformationFunction), status)
   }
 
 }
