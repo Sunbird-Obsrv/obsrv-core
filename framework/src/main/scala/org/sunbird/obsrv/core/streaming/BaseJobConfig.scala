@@ -45,7 +45,7 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
   val systemEventsProducer = "system-events-sink"
 
   // Checkpointing config
-  val enableCompressedCheckpointing: Boolean = config.getBoolean("task.checkpointing.compressed")
+  val enableCompressedCheckpointing: Boolean = config.getBoolean("job.enable.distributed.checkpointing")
   val checkpointingInterval: Int = config.getInt("task.checkpointing.interval")
   val checkpointingPauseSeconds: Int = config.getInt("task.checkpointing.pause.between.seconds")
   val enableDistributedCheckpointing: Option[Boolean] = if (config.hasPath("job")) Option(config.getBoolean("job.enable.distributed.checkpointing")) else None
