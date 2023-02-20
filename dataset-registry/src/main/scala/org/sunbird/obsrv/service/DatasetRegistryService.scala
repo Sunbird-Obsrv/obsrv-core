@@ -8,7 +8,7 @@ import java.sql.ResultSet
 
 object DatasetRegistryService {
 
-  private val config = ConfigFactory.load("base-config.conf")
+  private val config = ConfigFactory.load("dataset-registry.conf")
   private val postgresConfig = PostgresConnectionConfig(config.getString("postgres.user"), config.getString("postgres.password"),
     config.getString("postgres.database"), config.getString("postgres.host"), config.getInt("postgres.port"),
     config.getInt("postgres.maxConnections"))
