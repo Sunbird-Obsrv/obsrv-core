@@ -1,6 +1,7 @@
 package org.sunbird.obsrv.pipeline.task
 
 import com.typesafe.config.{Config, ConfigFactory}
+import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
@@ -45,7 +46,8 @@ class MergedPipelineStreamTask(config: Config, mergedPipelineConfig: MergedPipel
     val datasets = DatasetRegistry.getAllDatasets()
 
     /** Create a data stream from the input topic */
-    val dataStream = env.addSource(kafkaConnector.kafkaMapSource(mergedPipelineConfig.kafkaInputTopic), mergedPipelineConfig.pipelineConsumer)
+    val dataStream = env.fromSource(kafkaConnector.kafkaMapSource(mergedPipelineConfig.kafkaInputTopic),
+      WatermarkStrategy.noWatermarks[mutable.Map[String, AnyRef]](), mergedPipelineConfig.pipelineConsumer)
       .uid(mergedPipelineConfig.pipelineConsumer).setParallelism(mergedPipelineConfig.kafkaConsumerParallelism)
       .rebalance()
 
@@ -75,7 +77,7 @@ class MergedPipelineStreamTask(config: Config, mergedPipelineConfig: MergedPipel
 
     datasets.map(dataset => {
       routerStream.getSideOutput(OutputTag[mutable.Map[String, AnyRef]](dataset.routerConfig.topic))
-        .addSink(kafkaConnector.kafkaMapSink(dataset.routerConfig.topic))
+        .sinkTo(kafkaConnector.kafkaMapSink(dataset.routerConfig.topic))
         .name(dataset.id + "-" + routerConfig.druidRouterProducer).uid(dataset.id + "-" + routerConfig.druidRouterProducer)
         .setParallelism(routerConfig.downstreamOperatorsParallelism)
     })
@@ -83,31 +85,31 @@ class MergedPipelineStreamTask(config: Config, mergedPipelineConfig: MergedPipel
     /** Success Flow - End */
 
     /** Exception Flow - Start */
-    extractorStream.getSideOutput(extractorConfig.failedBatchEventOutputTag).addSink(kafkaConnector.kafkaMapSink(extractorConfig.kafkaBatchFailedTopic))
+    extractorStream.getSideOutput(extractorConfig.failedBatchEventOutputTag).sinkTo(kafkaConnector.kafkaMapSink(extractorConfig.kafkaBatchFailedTopic))
       .name(extractorConfig.extractorBatchFailedEventsProducer).uid(extractorConfig.extractorBatchFailedEventsProducer).setParallelism(extractorConfig.downstreamOperatorsParallelism)
-    extractorStream.getSideOutput(extractorConfig.duplicateEventOutputTag).addSink(kafkaConnector.kafkaMapSink(extractorConfig.kafkaDuplicateTopic))
+    extractorStream.getSideOutput(extractorConfig.duplicateEventOutputTag).sinkTo(kafkaConnector.kafkaMapSink(extractorConfig.kafkaDuplicateTopic))
       .name(extractorConfig.extractorDuplicateProducer).uid(extractorConfig.extractorDuplicateProducer).setParallelism(extractorConfig.downstreamOperatorsParallelism)
-    extractorStream.getSideOutput(extractorConfig.systemEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(extractorConfig.kafkaSystemTopic))
+    extractorStream.getSideOutput(extractorConfig.systemEventsOutputTag).sinkTo(kafkaConnector.kafkaStringSink(extractorConfig.kafkaSystemTopic))
       .name(extractorConfig.systemEventsProducer).uid(extractorConfig.systemEventsProducer).setParallelism(extractorConfig.downstreamOperatorsParallelism)
-    extractorStream.getSideOutput(extractorConfig.failedEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(extractorConfig.kafkaFailedTopic))
+    extractorStream.getSideOutput(extractorConfig.failedEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(extractorConfig.kafkaFailedTopic))
       .name(extractorConfig.extractorFailedEventsProducer).uid(extractorConfig.extractorFailedEventsProducer).setParallelism(extractorConfig.downstreamOperatorsParallelism)
 
-    validStream.getSideOutput(preprocessorConfig.failedEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(preprocessorConfig.kafkaFailedTopic))
+    validStream.getSideOutput(preprocessorConfig.failedEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(preprocessorConfig.kafkaFailedTopic))
       .name(preprocessorConfig.failedEventProducer).uid(preprocessorConfig.failedEventProducer).setParallelism(preprocessorConfig.downstreamOperatorsParallelism)
-    validStream.getSideOutput(preprocessorConfig.systemEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(preprocessorConfig.kafkaSystemTopic))
+    validStream.getSideOutput(preprocessorConfig.systemEventsOutputTag).sinkTo(kafkaConnector.kafkaStringSink(preprocessorConfig.kafkaSystemTopic))
       .name(preprocessorConfig.validationConsumer + "-" + preprocessorConfig.systemEventsProducer).uid(preprocessorConfig.validationConsumer + "-" + preprocessorConfig.systemEventsProducer).setParallelism(preprocessorConfig.downstreamOperatorsParallelism)
-    validStream.getSideOutput(preprocessorConfig.invalidEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(preprocessorConfig.kafkaInvalidTopic))
+    validStream.getSideOutput(preprocessorConfig.invalidEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(preprocessorConfig.kafkaInvalidTopic))
       .name(preprocessorConfig.invalidEventProducer).uid(preprocessorConfig.invalidEventProducer).setParallelism(preprocessorConfig.downstreamOperatorsParallelism)
 
-    uniqueStream.getSideOutput(preprocessorConfig.duplicateEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(preprocessorConfig.kafkaDuplicateTopic))
+    uniqueStream.getSideOutput(preprocessorConfig.duplicateEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(preprocessorConfig.kafkaDuplicateTopic))
       .name(preprocessorConfig.duplicateEventProducer).uid(preprocessorConfig.duplicateEventProducer).setParallelism(preprocessorConfig.downstreamOperatorsParallelism)
-    uniqueStream.getSideOutput(preprocessorConfig.systemEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(preprocessorConfig.kafkaSystemTopic))
+    uniqueStream.getSideOutput(preprocessorConfig.systemEventsOutputTag).sinkTo(kafkaConnector.kafkaStringSink(preprocessorConfig.kafkaSystemTopic))
       .name(preprocessorConfig.dedupConsumer + "-" + preprocessorConfig.systemEventsProducer).uid(preprocessorConfig.dedupConsumer + "-" + preprocessorConfig.systemEventsProducer).setParallelism(preprocessorConfig.downstreamOperatorsParallelism)
 
-    denormStream.getSideOutput(denormalizerConfig.denormFailedTag).addSink(kafkaConnector.kafkaMapSink(denormalizerConfig.denormFailedTopic))
+    denormStream.getSideOutput(denormalizerConfig.denormFailedTag).sinkTo(kafkaConnector.kafkaMapSink(denormalizerConfig.denormFailedTopic))
       .name(denormalizerConfig.DENORM_FAILED_EVENTS_PRODUCER).uid(denormalizerConfig.DENORM_FAILED_EVENTS_PRODUCER).setParallelism(denormalizerConfig.downstreamOperatorsParallelism)
 
-    routerStream.getSideOutput(routerConfig.statsOutputTag).addSink(kafkaConnector.kafkaMapSink(routerConfig.kafkaStatsTopic))
+    routerStream.getSideOutput(routerConfig.statsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(routerConfig.kafkaStatsTopic))
       .name(routerConfig.processingStatsProducer).uid(routerConfig.processingStatsProducer).setParallelism(routerConfig.downstreamOperatorsParallelism)
 
     /** Exception Flow - End */
