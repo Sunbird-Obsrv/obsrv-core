@@ -2,9 +2,11 @@ package org.sunbird.obsrv.extractor.task
 
 import java.io.File
 import com.typesafe.config.ConfigFactory
+import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.streaming.api.datastream.SingleOutputStreamOperator
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
 import org.sunbird.obsrv.core.util.FlinkUtil
@@ -25,26 +27,31 @@ class ExtractorStreamTask(config: ExtractorConfig, kafkaConnector: FlinkKafkaCon
     implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
     val extractionStream =
-      env.addSource(kafkaConnector.kafkaMapSource(config.kafkaInputTopic), config.extractorConsumer)
+      // env.addSource(kafkaConnector.kafkaMapSource(config.kafkaInputTopic), config.extractorConsumer)
+      env.fromSource(kafkaConnector.kafkaMapSource(config.kafkaInputTopic), WatermarkStrategy.noWatermarks[mutable.Map[String, AnyRef]](), config.extractorConsumer)
         .uid(config.extractorConsumer).setParallelism(config.kafkaConsumerParallelism)
         .rebalance()
         .process(new ExtractionFunction(config))
         .name(config.extractionFunction).uid(config.extractionFunction)
         .setParallelism(config.downstreamOperatorsParallelism)
 
-    extractionStream.getSideOutput(config.failedBatchEventOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaBatchFailedTopic))
-      .name(config.extractorBatchFailedEventsProducer).uid(config.extractorBatchFailedEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
+    // extractionStream.getSideOutput(config.failedBatchEventOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaBatchFailedTopic))
+    extractionStream.getSideOutput(config.failedBatchEventOutputTag)
+      .sinkTo(kafkaConnector.kafkaMapSink(config.kafkaBatchFailedTopic))
+      .name(config.extractorBatchFailedEventsProducer).uid(config.extractorBatchFailedEventsProducer)
+      .setParallelism(config.downstreamOperatorsParallelism)
 
-    extractionStream.getSideOutput(config.rawEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaSuccessTopic))
+    // extractionStream.getSideOutput(config.rawEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaSuccessTopic))
+    extractionStream.getSideOutput(config.rawEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaSuccessTopic))
       .name(config.extractorRawEventsProducer).uid(config.extractorRawEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    extractionStream.getSideOutput(config.duplicateEventOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaDuplicateTopic))
+    extractionStream.getSideOutput(config.duplicateEventOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaDuplicateTopic))
       .name(config.extractorDuplicateProducer).uid(config.extractorDuplicateProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    extractionStream.getSideOutput(config.systemEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(config.kafkaSystemTopic))
+    extractionStream.getSideOutput(config.systemEventsOutputTag).sinkTo(kafkaConnector.kafkaStringSink(config.kafkaSystemTopic))
       .name(config.systemEventsProducer).uid(config.systemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    extractionStream.getSideOutput(config.failedEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaFailedTopic))
+    extractionStream.getSideOutput(config.failedEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaFailedTopic))
       .name(config.extractorFailedEventsProducer).uid(config.extractorFailedEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
     env.execute(config.jobName)
