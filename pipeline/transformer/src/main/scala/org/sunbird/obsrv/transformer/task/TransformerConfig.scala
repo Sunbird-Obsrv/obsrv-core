@@ -21,7 +21,7 @@ class TransformerConfig(override val config: Config) extends BaseJobConfig(confi
   val transformSkippedCount = "transform-skipped-count"
 
   val kafkaInputTopic: String = config.getString("kafka.input.topic")
-  val kafkaTransformTopic: String = config.getString("kafka.output.topic")
+  val kafkaTransformTopic: String = config.getString("kafka.output.transform.topic")
 
   val transformerConsumer = "transformer-consumer"
   val transformerFunction = "transformer-function"

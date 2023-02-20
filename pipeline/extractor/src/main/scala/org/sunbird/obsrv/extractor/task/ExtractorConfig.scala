@@ -15,13 +15,13 @@ class ExtractorConfig(override val config: Config) extends BaseJobConfig(config,
   implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
   implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
-  val dedupStore: Int = config.getInt("redis.database.duplication.store.id")
+  val dedupStore: Int = config.getInt("redis.database.extractor.duplication.store.id")
   val cacheExpiryInSeconds: Int = SystemConfig.defaultDedupPeriodInSeconds
 
   // Kafka Topics Configuration
   val kafkaInputTopic: String = config.getString("kafka.input.topic")
   val kafkaSuccessTopic: String = config.getString("kafka.output.raw.topic")
-  val kafkaDuplicateTopic: String = config.getString("kafka.output.duplicate.topic")
+  val kafkaDuplicateTopic: String = config.getString("kafka.output.extractor.duplicate.topic")
   val kafkaFailedTopic: String = config.getString("kafka.output.failed.topic")
   val kafkaBatchFailedTopic: String = config.getString("kafka.output.batch.failed.topic")
   val eventMaxSize: Long = SystemConfig.maxEventSize

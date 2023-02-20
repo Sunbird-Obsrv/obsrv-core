@@ -25,6 +25,7 @@
 		<module>denormalizer</module>
 		<module>transformer</module>
 		<module>druid-router</module>
+		<module>pipeline-merged</module>
 	</modules>
 
 	<properties>

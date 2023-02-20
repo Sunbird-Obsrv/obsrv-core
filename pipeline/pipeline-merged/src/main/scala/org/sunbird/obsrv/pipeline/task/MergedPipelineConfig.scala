@@ -1,4 +1,4 @@
-package org.sunbird.obsrv.router.task
+package org.sunbird.obsrv.pipeline.task
 
 import com.typesafe.config.Config
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -8,7 +8,7 @@ import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
 import scala.collection.mutable
 
-class DruidRouterConfig(override val config: Config) extends BaseJobConfig(config, "DruidRouterJob") {
+class MergedPipelineConfig(override val config: Config) extends BaseJobConfig(config, "MergedPipelineJob") {
 
   private val serialVersionUID = 2905979434303791379L
   implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
@@ -17,14 +17,10 @@ class DruidRouterConfig(override val config: Config) extends BaseJobConfig(confi
   val kafkaInputTopic: String = config.getString("kafka.input.topic")
   val kafkaStatsTopic: String = config.getString("kafka.stats.topic")
 
-  // Router job metrics
-  val routerTotalCount = "router-total-count"
-  val routerSuccessCount = "router-success-count"
-
   val statsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("processing_stats")
 
   // Consumers
-  val druidRouterConsumer = "druid-router-consumer"
+  val pipelineConsumer = "pipeline-consumer"
 
   // Functions
   val druidRouterFunction = "DruidRouterFunction"

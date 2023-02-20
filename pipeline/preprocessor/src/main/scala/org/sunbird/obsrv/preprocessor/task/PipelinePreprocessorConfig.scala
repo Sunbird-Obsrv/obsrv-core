@@ -15,7 +15,7 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
   implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
-  val dedupStore: Int = config.getInt("redis.database.duplication.store.id")
+  val dedupStore: Int = config.getInt("redis.database.preprocessor.duplication.store.id")
   val cacheExpirySeconds: Int = config.getInt("redis.database.key.expiry.seconds")
 
   // Kafka Topic Configuration
