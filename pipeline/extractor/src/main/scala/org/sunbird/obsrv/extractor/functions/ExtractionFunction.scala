@@ -168,7 +168,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
 
 
   private def createWrapperEvent(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> event)
+    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> event.toMap)
   }
 }
 
