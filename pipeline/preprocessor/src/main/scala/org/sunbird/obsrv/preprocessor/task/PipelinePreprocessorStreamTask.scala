@@ -4,28 +4,31 @@ import com.typesafe.config.ConfigFactory
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
-import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
+import org.sunbird.obsrv.core.streaming.{BaseStreamTask, FlinkKafkaConnector}
 import org.sunbird.obsrv.core.util.FlinkUtil
 import org.sunbird.obsrv.preprocessor.functions.{DeduplicationFunction, EventValidationFunction}
 
 import java.io.File
 import scala.collection.mutable
 
-class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaConnector: FlinkKafkaConnector) {
+class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaConnector: FlinkKafkaConnector) extends BaseStreamTask[mutable.Map[String, AnyRef]] {
 
   private val serialVersionUID = 146697324640926024L
+  implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
 
   def process(): Unit = {
+
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
-    implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
-    val kafkaConsumer = kafkaConnector.kafkaMapSource(config.kafkaInputTopic)
+    val dataStream = getMapDataStream(env, config, kafkaConnector)
+    processStream(dataStream)
+    env.execute(config.jobName)
+  }
 
-    val validStream = env.addSource(kafkaConsumer, config.validationConsumer)
-      .uid(config.validationConsumer).setParallelism(config.kafkaConsumerParallelism)
-      .rebalance()
-      .process(new EventValidationFunction(config)).setParallelism(config.downstreamOperatorsParallelism)
+  override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {
 
+    val validStream = dataStream.process(new EventValidationFunction(config)).setParallelism(config.downstreamOperatorsParallelism)
     val uniqueStream = validStream.getSideOutput(config.validEventsOutputTag)
       .process(new DeduplicationFunction(config))
       .name(config.dedupConsumer).uid(config.dedupConsumer)
@@ -45,10 +48,10 @@ class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaCo
       .name(config.duplicateEventProducer).uid(config.duplicateEventProducer).setParallelism(config.downstreamOperatorsParallelism)
     uniqueStream.getSideOutput(config.systemEventsOutputTag).addSink(kafkaConnector.kafkaStringSink(config.kafkaSystemTopic))
       .name(config.dedupConsumer + "-" + config.systemEventsProducer).uid(config.dedupConsumer + "-" + config.systemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
-    uniqueStream.getSideOutput(config.uniqueEventsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaUniqueTopic))
+    uniqueStream.getSideOutput(config.successTag()).addSink(kafkaConnector.kafkaMapSink(config.kafkaUniqueTopic))
       .name(config.uniqueEventProducer).uid(config.uniqueEventProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    env.execute(config.jobName)
+    uniqueStream.getSideOutput(config.successTag())
   }
 }
 

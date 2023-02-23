@@ -7,7 +7,7 @@ import org.apache.flink.streaming.api.scala.OutputTag
 import org.sunbird.obsrv.core.streaming.BaseJobConfig
 import scala.collection.mutable
 
-class DenormalizerConfig(override val config: Config) extends BaseJobConfig(config, "DenormalizerJob" ) {
+class DenormalizerConfig(override val config: Config) extends BaseJobConfig[mutable.Map[String, AnyRef]](config, "DenormalizerJob" ) {
 
   private val serialVersionUID = 2905979434303791379L
 
@@ -15,7 +15,7 @@ class DenormalizerConfig(override val config: Config) extends BaseJobConfig(conf
   implicit val anyTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
   // Kafka Topics Configuration
-  val inputTopic: String = config.getString("kafka.input.topic")
+  val kafkaInputTopic: String = config.getString("kafka.input.topic")
   val denormOutputTopic: String = config.getString("kafka.output.denorm.topic")
   val denormFailedTopic: String = config.getString("kafka.output.denorm.failed.topic")
 
@@ -42,5 +42,9 @@ class DenormalizerConfig(override val config: Config) extends BaseJobConfig(conf
 
   // Functions
   val denormalizationFunction = "DenormalizationFunction"
+
+  override def inputTopic(): String = kafkaInputTopic
+  override def inputConsumer(): String = denormalizationConsumer
+  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = denormEventsTag
 
 }

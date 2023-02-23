@@ -118,7 +118,7 @@ trait BaseFunction {
   }
 }
 
-abstract class BaseProcessFunction[T, R](config: BaseJobConfig) extends ProcessFunction[T, R] with BaseDeduplication with JobMetrics with BaseFunction {
+abstract class BaseProcessFunction[T, R](config: BaseJobConfig[R]) extends ProcessFunction[T, R] with BaseDeduplication with JobMetrics with BaseFunction {
 
   private val metricsList = getMetricsList()
   private val metrics: Metrics = registerMetrics(metricsList.datasets, metricsList.metrics)
@@ -146,7 +146,7 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig) extends ProcessF
 
 }
 
-abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig) extends ProcessWindowFunction[I, O, K, TimeWindow] with BaseDeduplication with JobMetrics with BaseFunction {
+abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig[O]) extends ProcessWindowFunction[I, O, K, TimeWindow] with BaseDeduplication with JobMetrics with BaseFunction {
 
   private val metricsList = getMetricsList()
   private val metrics: Metrics = registerMetrics(metricsList.datasets, metricsList.metrics)

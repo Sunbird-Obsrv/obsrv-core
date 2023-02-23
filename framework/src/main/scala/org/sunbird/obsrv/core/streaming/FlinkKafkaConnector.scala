@@ -8,7 +8,7 @@ import org.sunbird.obsrv.core.serde._
 
 import scala.collection.mutable
 
-class FlinkKafkaConnector(config: BaseJobConfig) extends Serializable {
+class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
 
   def kafkaMapSource(kafkaTopic: String): SourceFunction[mutable.Map[String, AnyRef]] = {
     new FlinkKafkaConsumer[mutable.Map[String, AnyRef]](kafkaTopic, new MapDeserializationSchema, config.kafkaConsumerProperties)

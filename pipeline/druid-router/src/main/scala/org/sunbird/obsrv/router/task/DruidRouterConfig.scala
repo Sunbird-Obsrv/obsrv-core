@@ -8,7 +8,7 @@ import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
 import scala.collection.mutable
 
-class DruidRouterConfig(override val config: Config) extends BaseJobConfig(config, "DruidRouterJob") {
+class DruidRouterConfig(override val config: Config) extends BaseJobConfig[mutable.Map[String, AnyRef]](config, "DruidRouterJob") {
 
   private val serialVersionUID = 2905979434303791379L
   implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
@@ -22,10 +22,7 @@ class DruidRouterConfig(override val config: Config) extends BaseJobConfig(confi
   val routerSuccessCount = "router-success-count"
 
   val statsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("processing_stats")
-
-  // Consumers
-  val druidRouterConsumer = "druid-router-consumer"
-
+  
   // Functions
   val druidRouterFunction = "DruidRouterFunction"
 
@@ -33,4 +30,15 @@ class DruidRouterConfig(override val config: Config) extends BaseJobConfig(confi
   val druidRouterProducer = "druid-router-sink"
   val processingStatsProducer = "processing-stats-sink"
 
+  override def inputTopic(): String = {
+    kafkaInputTopic
+  }
+
+  override def inputConsumer(): String = {
+    "druid-router-consumer"
+  }
+
+  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = {
+    null
+  }
 }

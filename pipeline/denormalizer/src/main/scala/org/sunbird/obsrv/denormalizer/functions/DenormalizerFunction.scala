@@ -1,6 +1,5 @@
 package org.sunbird.obsrv.denormalizer.functions
 
-import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.slf4j.LoggerFactory
@@ -13,7 +12,7 @@ import org.sunbird.obsrv.registry.DatasetRegistry
 
 import scala.collection.mutable
 
-class DenormalizerFunction(config: DenormalizerConfig)(implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]])
+class DenormalizerFunction(config: DenormalizerConfig)
   extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
   private[this] val logger = LoggerFactory.getLogger(classOf[DenormalizerFunction])

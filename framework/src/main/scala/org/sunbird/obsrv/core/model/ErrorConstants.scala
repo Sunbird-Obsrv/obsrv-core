@@ -8,6 +8,8 @@ object ErrorConstants extends Enumeration {
     ErrorValue(errorCode, errorMsg)
   }
 
+  val NO_IMPLEMENTATION_FOUND = ErrorInternalValue("ERR_0001", "Unimplemented method")
+
   val NO_EXTRACTION_DATA_FOUND = ErrorInternalValue("ERR_EXT_1001", "Unable to extract the data from the extraction key")
   val EXTRACTED_DATA_NOT_A_LIST = ErrorInternalValue("ERR_EXT_1002", "The extracted data is not an list")
   val EVENT_SIZE_EXCEEDED = ErrorInternalValue("ERR_EXT_1003", ("Event size has exceeded max configured size of " + SystemConfig.maxEventSize))

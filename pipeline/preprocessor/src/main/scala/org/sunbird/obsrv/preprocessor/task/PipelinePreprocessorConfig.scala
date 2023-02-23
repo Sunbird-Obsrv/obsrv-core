@@ -8,7 +8,7 @@ import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
 import scala.collection.mutable
 
-class PipelinePreprocessorConfig(override val config: Config) extends BaseJobConfig(config, "PipelinePreprocessorJob") {
+class PipelinePreprocessorConfig(override val config: Config) extends BaseJobConfig[mutable.Map[String, AnyRef]](config, "PipelinePreprocessorJob") {
 
   private val serialVersionUID = 2905979434303791379L
 
@@ -54,4 +54,9 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   val duplicateEventProducer = "duplicate-events-sink"
   val uniqueEventProducer = "unique-events-sink"
 
+  override def inputTopic(): String = kafkaInputTopic
+
+  override def inputConsumer(): String = validationConsumer
+
+  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = uniqueEventsOutputTag
 }

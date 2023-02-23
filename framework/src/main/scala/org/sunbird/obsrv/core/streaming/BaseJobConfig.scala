@@ -1,18 +1,19 @@
 package org.sunbird.obsrv.core.streaming
 
-import java.util.Properties
-import java.io.Serializable
 import com.typesafe.config.Config
-import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.streaming.api.scala.OutputTag
 import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.producer.ProducerConfig
 import org.sunbird.obsrv.core.model.SystemConfig
 
-class BaseJobConfig(val config: Config, val jobName: String) extends Serializable {
+import java.io.Serializable
+import java.util.Properties
 
-  private val serialVersionUID = - 4515020556926788923L
+abstract class BaseJobConfig[T](val config: Config, val jobName: String) extends Serializable {
+
+  private val serialVersionUID = -4515020556926788923L
 
   implicit val metricTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
@@ -51,13 +52,21 @@ class BaseJobConfig(val config: Config, val jobName: String) extends Serializabl
   val enableDistributedCheckpointing: Option[Boolean] = if (config.hasPath("job")) Option(config.getBoolean("job.enable.distributed.checkpointing")) else None
   val checkpointingBaseUrl: Option[String] = if (config.hasPath("job")) Option(config.getString("job.statebackend.base.url")) else None
 
+  // Base Methods
+  def inputTopic(): String
+
+  def inputConsumer(): String
+
+  def successTag(): OutputTag[T]
 
   def kafkaConsumerProperties: Properties = {
     val properties = new Properties()
     properties.setProperty("bootstrap.servers", kafkaConsumerBrokerServers)
     properties.setProperty("group.id", groupId)
     properties.setProperty(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
-    kafkaAutoOffsetReset.map { properties.setProperty("auto.offset.reset", _) }
+    kafkaAutoOffsetReset.map {
+      properties.setProperty("auto.offset.reset", _)
+    }
     properties
   }
 

@@ -6,7 +6,7 @@ import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
 
 
-class TestMapStreamFunc(config: BaseProcessTestConfig)(implicit val stringTypeInfo: TypeInformation[String])
+class TestMapStreamFunc(config: BaseProcessTestMapConfig)(implicit val stringTypeInfo: TypeInformation[String])
   extends BaseProcessFunction[Map[String, AnyRef], Map[String, AnyRef]](config) {
 
   override def getMetricsList(): MetricsList = {
