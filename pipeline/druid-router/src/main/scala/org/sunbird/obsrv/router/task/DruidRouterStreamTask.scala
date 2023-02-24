@@ -5,9 +5,10 @@ import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
+import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.scala.OutputTag
-import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
+import org.sunbird.obsrv.core.streaming.{BaseStreamTask, FlinkKafkaConnector}
 import org.sunbird.obsrv.core.util.FlinkUtil
 import org.sunbird.obsrv.registry.DatasetRegistry
 import org.sunbird.obsrv.router.functions.DruidRouterFunction
@@ -19,39 +20,37 @@ import scala.collection.mutable
  * Druid Router stream task routes every event into its respective topic configured at dataset level
  */
 
-class DruidRouterStreamTask(config: DruidRouterConfig, kafkaConnector: FlinkKafkaConnector) {
+class DruidRouterStreamTask(config: DruidRouterConfig, kafkaConnector: FlinkKafkaConnector) extends BaseStreamTask[mutable.Map[String, AnyRef]] {
 
   private val serialVersionUID = 146697324640926024L
 
   def process(): Unit = {
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
-    implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
+    val dataStream = getMapDataStream(env, config, kafkaConnector)
+    processStream(dataStream)
+    env.execute(config.jobName)
+  }
 
+  override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {
+
+    implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
     val datasets = DatasetRegistry.getAllDatasets()
 
-    /**
-     * Perform validation
-     */
-    val dataStream =
-      env.fromSource(kafkaConnector.kafkaMapSource(config.kafkaInputTopic), WatermarkStrategy.noWatermarks[mutable.Map[String, AnyRef]](), config.druidRouterConsumer)
-        .uid(config.druidRouterConsumer).setParallelism(config.kafkaConsumerParallelism)
-        .rebalance()
-        .process(new DruidRouterFunction(config)).name(config.druidRouterFunction).uid(config.druidRouterFunction)
-        .setParallelism(config.downstreamOperatorsParallelism)
-
+    val routerStream = dataStream.process(new DruidRouterFunction(config)).name(config.druidRouterFunction).uid(config.druidRouterFunction)
+      .setParallelism(config.downstreamOperatorsParallelism)
     datasets.map(dataset => {
-      dataStream.getSideOutput(OutputTag[mutable.Map[String, AnyRef]](dataset.routerConfig.topic))
+      routerStream.getSideOutput(OutputTag[mutable.Map[String, AnyRef]](dataset.routerConfig.topic))
         .sinkTo(kafkaConnector.kafkaMapSink(dataset.routerConfig.topic))
         .name(dataset.id + "-" + config.druidRouterProducer).uid(dataset.id + "-" + config.druidRouterProducer)
         .setParallelism(config.downstreamOperatorsParallelism)
     })
 
-    dataStream.getSideOutput(config.statsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaStatsTopic))
+    routerStream.getSideOutput(config.statsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaStatsTopic))
       .name(config.processingStatsProducer).uid(config.processingStatsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    env.execute(config.jobName)
-  }
+    routerStream.getSideOutput(config.successTag())
 
+  }
 }
 
 // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked within flink cluster

@@ -8,7 +8,7 @@ import org.apache.flink.streaming.api.scala.OutputTag
 import org.sunbird.obsrv.core.model.SystemConfig
 import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
-class ExtractorConfig(override val config: Config) extends BaseJobConfig(config, "ExtractorJob") {
+class ExtractorConfig(override val config: Config) extends BaseJobConfig[mutable.Map[String, AnyRef]](config, "ExtractorJob") {
 
   private val serialVersionUID = 2905979434303791379L
 
@@ -45,9 +45,6 @@ class ExtractorConfig(override val config: Config) extends BaseJobConfig(config,
   val failedBatchEventOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](FAILED_BATCH_EVENTS_OUTPUT_TAG)
   val duplicateEventOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](id = DUPLICATE_EVENTS_OUTPUT_TAG)
 
-  // Consumers
-  val extractorConsumer = "extractor-consumer"
-
   // Functions
   val extractionFunction = "ExtractionFunction"
 
@@ -56,4 +53,9 @@ class ExtractorConfig(override val config: Config) extends BaseJobConfig(config,
   val extractorBatchFailedEventsProducer = "extractor-batch-failed-events-sink"
   val extractorRawEventsProducer = "extractor-raw-events-sink"
   val extractorFailedEventsProducer = "extractor-failed-events-sink"
+
+  override def inputTopic(): String = kafkaInputTopic
+  override def inputConsumer(): String = "extractor-consumer"
+  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = rawEventsOutputTag
+
 }

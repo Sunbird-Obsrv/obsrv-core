@@ -8,7 +8,7 @@ import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
 import scala.collection.mutable
 
-class MergedPipelineConfig(override val config: Config) extends BaseJobConfig(config, "MergedPipelineJob") {
+class MergedPipelineConfig(override val config: Config) extends BaseJobConfig[mutable.Map[String, AnyRef]](config, "MergedPipelineJob") {
 
   private val serialVersionUID = 2905979434303791379L
   implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
@@ -19,9 +19,6 @@ class MergedPipelineConfig(override val config: Config) extends BaseJobConfig(co
 
   val statsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("processing_stats")
 
-  // Consumers
-  val pipelineConsumer = "pipeline-consumer"
-
   // Functions
   val druidRouterFunction = "DruidRouterFunction"
 
@@ -29,4 +26,7 @@ class MergedPipelineConfig(override val config: Config) extends BaseJobConfig(co
   val druidRouterProducer = "druid-router-sink"
   val processingStatsProducer = "processing-stats-sink"
 
+  override def inputTopic(): String = kafkaInputTopic
+  override def inputConsumer(): String = "pipeline-consumer"
+  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = statsOutputTag
 }

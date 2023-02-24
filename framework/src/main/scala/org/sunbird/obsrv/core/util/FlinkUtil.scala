@@ -11,7 +11,7 @@ import org.apache.flink.streaming.api.environment.CheckpointConfig.ExternalizedC
 
 object FlinkUtil {
 
-  def getExecutionContext(config: BaseJobConfig): StreamExecutionEnvironment = {
+  def getExecutionContext(config: BaseJobConfig[_]): StreamExecutionEnvironment = {
     val env: StreamExecutionEnvironment = StreamExecutionEnvironment.getExecutionEnvironment
     env.getConfig.setUseSnapshotCompression(config.enableCompressedCheckpointing)
     env.enableCheckpointing(config.checkpointingInterval)

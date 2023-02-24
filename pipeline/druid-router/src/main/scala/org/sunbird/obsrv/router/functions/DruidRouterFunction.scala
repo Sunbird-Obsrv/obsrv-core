@@ -1,6 +1,7 @@
 package org.sunbird.obsrv.router.functions
 
 import org.apache.flink.api.common.typeinfo.TypeInformation
+import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.scala.OutputTag
@@ -12,8 +13,7 @@ import org.sunbird.obsrv.router.task.DruidRouterConfig
 
 import scala.collection.mutable
 
-class DruidRouterFunction(config: DruidRouterConfig)(implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]])
-  extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
+class DruidRouterFunction(config: DruidRouterConfig) extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
   private[this] val logger = LoggerFactory.getLogger(classOf[DruidRouterFunction])
 
@@ -34,6 +34,7 @@ class DruidRouterFunction(config: DruidRouterConfig)(implicit val eventTypeInfo:
                               ctx: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
 
+    implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
     val datasetId = msg(config.CONST_DATASET).asInstanceOf[String] // DatasetId cannot be empty at this stage
     metrics.incCounter(datasetId, config.routerTotalCount)
     val dataset = DatasetRegistry.getDataset(datasetId).get

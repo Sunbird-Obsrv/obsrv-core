@@ -16,7 +16,7 @@ trait BaseDeduplication {
 
   def isDuplicate(dedupKey: Option[String], event: String,
                   context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
-                  config: BaseJobConfig)
+                  config: BaseJobConfig[_])
                  (implicit deDupEngine: DedupEngine): Boolean = {
 
     try {
@@ -44,7 +44,7 @@ trait BaseDeduplication {
     if (node.isMissingNode) {
       throw new ObsrvException(ErrorConstants.NO_DEDUP_KEY_FOUND)
     }
-    if(!node.isTextual) {
+    if (!node.isTextual) {
       throw new ObsrvException(ErrorConstants.DEDUP_KEY_NOT_A_STRING)
     }
     node.asText()

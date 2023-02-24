@@ -1,6 +1,5 @@
 package org.sunbird.obsrv.extractor.functions
 
-import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.sunbird.obsrv.core.cache.{DedupEngine, RedisConnect}
@@ -17,7 +16,7 @@ import org.sunbird.obsrv.registry.DatasetRegistry
 
 import scala.collection.mutable
 
-class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: DedupEngine = null)(implicit val stringTypeInfo: TypeInformation[String])
+class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: DedupEngine = null)
   extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
   override def getMetricsList(): MetricsList = {
@@ -29,7 +28,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     if (dedupEngine == null) {
-      val redisConnect = new RedisConnect(config.redisHost, config.redisPort, config)
+      val redisConnect = new RedisConnect(config.redisHost, config.redisPort, config.redisConnectionTimeout)
       dedupEngine = new DedupEngine(redisConnect, config.dedupStore, config.cacheExpiryInSeconds)
     }
   }
@@ -168,7 +167,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
 
 
   private def createWrapperEvent(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> event)
+    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> event.toMap)
   }
 }
 

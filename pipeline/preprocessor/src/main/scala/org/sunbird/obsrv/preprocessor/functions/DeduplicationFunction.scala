@@ -30,7 +30,7 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig, @transient var d
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     if (dedupEngine == null) {
-      val redisConnect = new RedisConnect(config.redisHost, config.redisPort, config)
+      val redisConnect = new RedisConnect(config.redisHost, config.redisPort, config.redisConnectionTimeout)
       dedupEngine = new DedupEngine(redisConnect, config.dedupStore, config.cacheExpirySeconds)
     }
   }

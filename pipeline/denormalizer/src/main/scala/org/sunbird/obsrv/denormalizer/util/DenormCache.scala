@@ -27,7 +27,7 @@ class DenormCache(val config: DenormalizerConfig) {
     datasets.map(dataset => {
       if (dataset.denormConfig.isDefined) {
         val denormConfig = dataset.denormConfig.get
-        val redisConnect = new RedisConnect(denormConfig.redisDBHost, denormConfig.redisDBPort, config)
+        val redisConnect = new RedisConnect(denormConfig.redisDBHost, denormConfig.redisDBPort, config.redisConnectionTimeout)
         val pipeline: Pipeline = redisConnect.getConnection(0).pipelined()
         datasetPipelineMap.put(dataset.id, pipeline)
       }

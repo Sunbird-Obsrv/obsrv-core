@@ -8,7 +8,7 @@ import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
 import scala.collection.mutable
 
-class TransformerConfig(override val config: Config) extends BaseJobConfig(config, "TransformerJob") {
+class TransformerConfig(override val config: Config) extends BaseJobConfig[mutable.Map[String, AnyRef]](config, "TransformerJob") {
 
   private val serialVersionUID = 2905979434303791379L
 
@@ -23,11 +23,15 @@ class TransformerConfig(override val config: Config) extends BaseJobConfig(confi
   val kafkaInputTopic: String = config.getString("kafka.input.topic")
   val kafkaTransformTopic: String = config.getString("kafka.output.transform.topic")
 
-  val transformerConsumer = "transformer-consumer"
   val transformerFunction = "transformer-function"
   val transformerProducer = "transformer-producer"
 
   private val TRANSFORMER_OUTPUT_TAG = "transformed-events"
   val transformerOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](TRANSFORMER_OUTPUT_TAG)
 
+  override def inputTopic(): String = kafkaInputTopic
+
+  override def inputConsumer(): String = "transformer-consumer"
+
+  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = transformerOutputTag
 }

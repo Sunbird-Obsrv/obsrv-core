@@ -1,20 +1,16 @@
 package org.sunbird.obsrv.core.cache
 
-import com.typesafe.config.Config
 import org.slf4j.LoggerFactory
-import org.sunbird.obsrv.core.streaming.BaseJobConfig
 import redis.clients.jedis.Jedis
 
-class RedisConnect(redisHost: String, redisPort: Int, jobConfig: BaseJobConfig) extends java.io.Serializable {
+class RedisConnect(redisHost: String, redisPort: Int, defaultTimeOut: Int) extends java.io.Serializable {
 
   private val serialVersionUID = -396824011996012513L
 
-  val config: Config = jobConfig.config
   private val logger = LoggerFactory.getLogger(classOf[RedisConnect])
 
 
   private def getConnection(backoffTimeInMillis: Long): Jedis = {
-    val defaultTimeOut = jobConfig.redisConnectionTimeout
     if (backoffTimeInMillis > 0) try Thread.sleep(backoffTimeInMillis)
     catch {
       case e: InterruptedException =>

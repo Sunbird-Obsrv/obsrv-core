@@ -28,6 +28,7 @@ class BaseProcessFunctionTestSpec extends BaseSpec with Matchers {
     .build)
 
   val config: Config = ConfigFactory.load("base-test.conf")
+  val bsMapConfig = new BaseProcessTestMapConfig(config)
   val bsConfig = new BaseProcessTestConfig(config)
   val gson = new Gson()
 
@@ -117,11 +118,9 @@ class BaseProcessFunctionTestSpec extends BaseSpec with Matchers {
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(bsConfig)
 
     val mapStream =
-      // env.addSource(kafkaConnector.kafkaMapSource(bsConfig.kafkaMapInputTopic),  "map-event-consumer")
       env.fromSource(kafkaConnector.kafkaMapSource(bsConfig.kafkaMapInputTopic), WatermarkStrategy.noWatermarks[mutable.Map[String, AnyRef]](),
         "map-event-consumer")
-
-        .process(new TestMapStreamFunc(bsConfig)).name("TestMapEventStream")
+        .process(new TestMapStreamFunc(bsMapConfig)).name("TestMapEventStream")
 
     mapStream.getSideOutput(bsConfig.mapOutputTag)
       //.addSink(kafkaConnector.kafkaMapSink(bsConfig.kafkaMapOutputTopic))
