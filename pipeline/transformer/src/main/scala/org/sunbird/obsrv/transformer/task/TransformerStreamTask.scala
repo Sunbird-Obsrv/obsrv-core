@@ -49,9 +49,9 @@ object TransformerStreamTask {
     val config = configFilePath.map {
       path => ConfigFactory.parseFile(new File(path)).resolve()
     }.getOrElse(ConfigFactory.load("transformer.conf").withFallback(ConfigFactory.systemEnvironment()))
-    val telemetryExtractorConfig = new TransformerConfig(config)
-    val kafkaUtil = new FlinkKafkaConnector(telemetryExtractorConfig)
-    val task = new TransformerStreamTask(telemetryExtractorConfig, kafkaUtil)
+    val extractorConfig = new TransformerConfig(config)
+    val kafkaUtil = new FlinkKafkaConnector(extractorConfig)
+    val task = new TransformerStreamTask(extractorConfig, kafkaUtil)
     task.process()
   }
 }

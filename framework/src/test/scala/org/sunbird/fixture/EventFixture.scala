@@ -26,12 +26,12 @@ object EventFixture {
   val customConfig =
     """
       |kafka {
-      |  map.input.topic = "local.telemetry.map.input"
-      |  map.output.topic = "local.telemetry.map.output"
-      |  event.input.topic = "local.telemetry.event.input"
-      |  event.output.topic = "local.telemetry.event.output"
-      |  string.input.topic = "local.telemetry.string.input"
-      |  string.output.topic = "local.telemetry.string.output"
+      |  map.input.topic = "local.map.input"
+      |  map.output.topic = "local.map.output"
+      |  event.input.topic = "local.event.input"
+      |  event.output.topic = "local.event.output"
+      |  string.input.topic = "local.string.input"
+      |  string.output.topic = "local.string.output"
       |  producer.broker-servers = "localhost:9093"
       |  consumer.broker-servers = "localhost:9093"
       |  groupId = "pipeline-preprocessor-group"
@@ -84,7 +84,7 @@ object EventFixture {
       |    blob {
       |      storage {
       |        account = "blob.storage.account"
-      |        container = "telemetry-container"
+      |        container = "obsrv-container"
       |        checkpointing.dir = "flink-jobs"
       |      }
       |    }

@@ -1,4 +1,4 @@
-# Telemetry Denormalization Flink Job
+# Denormalization Flink Job
 
 This job is used to de-normalize data by running the job using Flink. It can be run either on Yarn or Kubernetes.
 

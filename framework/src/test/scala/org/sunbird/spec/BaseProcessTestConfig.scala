@@ -32,7 +32,7 @@ class BaseProcessTestConfig(override val config: Config) extends BaseJobConfig[S
   val dedupStore: Int = config.getInt("redis.database.duplicationstore.id")
   val cacheExpirySeconds: Int = config.getInt("redis.database.key.expiry.seconds")
   val mapEventCount = "map-event-count"
-  val telemetryEventCount = "telemetry-event-count"
+  val eventCount = "event-count"
   val stringEventCount = "string-event-count"
 
   override def inputTopic(): String = kafkaMapInputTopic

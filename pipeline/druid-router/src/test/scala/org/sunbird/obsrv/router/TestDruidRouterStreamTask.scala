@@ -14,9 +14,9 @@ object TestDruidRouterStreamTask {
     val config = configFilePath.map {
       path => ConfigFactory.parseFile(new File(path)).resolve()
     }.getOrElse(ConfigFactory.load("test.conf").withFallback(ConfigFactory.systemEnvironment()))
-    val telemetryExtractorConfig = new DruidRouterConfig(config)
-    val kafkaUtil = new FlinkKafkaConnector(telemetryExtractorConfig)
-    val task = new DruidRouterStreamTask(telemetryExtractorConfig, kafkaUtil)
+    val routerConfig = new DruidRouterConfig(config)
+    val kafkaUtil = new FlinkKafkaConnector(routerConfig)
+    val task = new DruidRouterStreamTask(routerConfig, kafkaUtil)
     task.process()
   }
 
