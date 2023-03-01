@@ -1,6 +1,7 @@
 package org.sunbird.obsrv.transformer.task
 
 import com.typesafe.config.ConfigFactory
+import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
@@ -34,7 +35,7 @@ class TransformerStreamTask(config: TransformerConfig, kafkaConnector: FlinkKafk
       .setParallelism(config.downstreamOperatorsParallelism)
 
     transformedStream.getSideOutput(config.transformerOutputTag)
-      .addSink(kafkaConnector.kafkaMapSink(config.kafkaTransformTopic))
+      .sinkTo(kafkaConnector.kafkaMapSink(config.kafkaTransformTopic))
       .name(config.transformerProducer).uid(config.transformerProducer)
       .setParallelism(config.downstreamOperatorsParallelism)
     transformedStream.getSideOutput(config.successTag())

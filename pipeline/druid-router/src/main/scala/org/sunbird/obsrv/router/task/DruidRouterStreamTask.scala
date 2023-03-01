@@ -1,6 +1,7 @@
 package org.sunbird.obsrv.router.task
 
 import com.typesafe.config.ConfigFactory
+import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
@@ -34,16 +35,17 @@ class DruidRouterStreamTask(config: DruidRouterConfig, kafkaConnector: FlinkKafk
 
     implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
     val datasets = DatasetRegistry.getAllDatasets()
+
     val routerStream = dataStream.process(new DruidRouterFunction(config)).name(config.druidRouterFunction).uid(config.druidRouterFunction)
       .setParallelism(config.downstreamOperatorsParallelism)
     datasets.map(dataset => {
       routerStream.getSideOutput(OutputTag[mutable.Map[String, AnyRef]](dataset.routerConfig.topic))
-        .addSink(kafkaConnector.kafkaMapSink(dataset.routerConfig.topic))
+        .sinkTo(kafkaConnector.kafkaMapSink(dataset.routerConfig.topic))
         .name(dataset.id + "-" + config.druidRouterProducer).uid(dataset.id + "-" + config.druidRouterProducer)
         .setParallelism(config.downstreamOperatorsParallelism)
     })
 
-    routerStream.getSideOutput(config.statsOutputTag).addSink(kafkaConnector.kafkaMapSink(config.kafkaStatsTopic))
+    routerStream.getSideOutput(config.statsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaStatsTopic))
       .name(config.processingStatsProducer).uid(config.processingStatsProducer).setParallelism(config.downstreamOperatorsParallelism)
 
     routerStream.getSideOutput(config.successTag())
