@@ -39,6 +39,6 @@ class DruidRouterConfig(override val config: Config) extends BaseJobConfig[mutab
   }
 
   override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = {
-    null
+    statsOutputTag
   }
 }
