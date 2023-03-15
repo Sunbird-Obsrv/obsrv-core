@@ -1,14 +1,20 @@
 package org.sunbird.obsrv.service
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import org.sunbird.obsrv.core.util.{JSONUtil, PostgresConnect, PostgresConnectionConfig}
 import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
 
+import java.io.File
 import java.sql.ResultSet
 
 object DatasetRegistryService {
 
-  private val config = ConfigFactory.load("dataset-registry.conf")
+  val configFile = new File("/data/conf/base-config.conf")
+  val config: Config = if (configFile.exists()) {
+    ConfigFactory.parseFile(configFile).resolve()
+  } else {
+    ConfigFactory.load("base-config.conf").withFallback(ConfigFactory.systemEnvironment())
+  }
   private val postgresConfig = PostgresConnectionConfig(config.getString("postgres.user"), config.getString("postgres.password"),
     config.getString("postgres.database"), config.getString("postgres.host"), config.getInt("postgres.port"),
     config.getInt("postgres.maxConnections"))
@@ -80,7 +86,8 @@ object DatasetRegistryService {
       if (extractionConfig == null) None else Some(JSONUtil.deserialize[ExtractionConfig](extractionConfig)),
       if (dedupConfig == null) None else Some(JSONUtil.deserialize[DedupConfig](dedupConfig)),
       if (validationConfig == null) None else Some(JSONUtil.deserialize[ValidationConfig](validationConfig)),
-      if (jsonSchema == null) None else Some(jsonSchema),
+      // if (jsonSchema == null) None else Some(jsonSchema),
+      Option(jsonSchema),
       if (denormConfig == null) None else Some(JSONUtil.deserialize[DenormConfig](denormConfig)),
       JSONUtil.deserialize[RouterConfig](routerConfig),
       status
