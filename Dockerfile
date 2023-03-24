@@ -12,7 +12,6 @@ copy pipeline/transformer/target/transformer-1.0.0.jar   /job/transformer-1.0.0.
 copy pipeline/pipeline-merged/target/pipeline-merged-1.0.0.jar /job/pipeline-merged-1.0.0.jar
 
 
-# Start Flink with the three JAR files
 CMD ["flink", "run", "-m", "jobmanager:8081", "/job/denormalizer-1.0.0.jar"]
 CMD ["flink", "run", "-m", "jobmanager:8081", "/job/extractor-1.0.0.jar"]
 CMD ["flink", "run", "-m", "jobmanager:8081", "/job/preprocessor-1.0.0.jar"]

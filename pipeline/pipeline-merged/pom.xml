@@ -14,15 +14,6 @@
         <version>1.0</version>
     </parent>
 
-    <groupId>org.sunbird.obsrv.pipeline</groupId>
-    <artifactId>pipeline-merged</artifactId>
-    <version>1.0.0</version>
-    <packaging>jar</packaging>
-    <name>Merged Pipeline</name>
-    <description>
-       Entire pipeline merged into a single processing job
-    </description>
-
     <properties>
         <encoding>UTF-8</encoding>
         <scoverage.plugin.version>1.4.0</scoverage.plugin.version>
