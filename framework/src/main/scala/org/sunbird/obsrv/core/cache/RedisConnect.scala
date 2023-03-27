@@ -12,10 +12,12 @@ class RedisConnect(redisHost: String, redisPort: Int, defaultTimeOut: Int) exten
 
   private def getConnection(backoffTimeInMillis: Long): Jedis = {
     if (backoffTimeInMillis > 0) try Thread.sleep(backoffTimeInMillis)
+      // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked during interrupt
     catch {
       case e: InterruptedException =>
         e.printStackTrace()
     }
+    // $COVERAGE-ON$
     logger.info("Obtaining new Redis connection...")
     new Jedis(redisHost, redisPort, defaultTimeOut)
   }

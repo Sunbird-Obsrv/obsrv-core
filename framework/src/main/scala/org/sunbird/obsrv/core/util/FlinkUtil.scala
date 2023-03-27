@@ -19,6 +19,7 @@ object FlinkUtil {
     /**
       * Use Blob storage as distributed state backend if enabled
       */
+    // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked with a cloud blob store config
     config.enableDistributedCheckpointing match {
       case Some(true) => {
         val stateBackend: StateBackend = new FsStateBackend(s"${config.checkpointingBaseUrl.getOrElse("")}/${config.jobName}", true)
@@ -29,6 +30,7 @@ object FlinkUtil {
       }
       case _ => // Do nothing
     }
+    // $COVERAGE-ON$
 
     env.setStreamTimeCharacteristic(TimeCharacteristic.IngestionTime)
     env.setRestartStrategy(RestartStrategies.fixedDelayRestart(config.restartAttempts, config.delayBetweenAttempts))

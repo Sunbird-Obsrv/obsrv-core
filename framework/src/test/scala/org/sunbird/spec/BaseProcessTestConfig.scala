@@ -6,7 +6,6 @@ import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.streaming.api.scala.OutputTag
 import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
-import scala.collection.mutable
 import scala.collection.mutable.Map
 
 class BaseProcessTestConfig(override val config: Config) extends BaseJobConfig[String](config, "Test-job") {
@@ -18,14 +17,10 @@ class BaseProcessTestConfig(override val config: Config) extends BaseJobConfig[S
 
   val kafkaMapInputTopic: String = config.getString("kafka.map.input.topic")
   val kafkaMapOutputTopic: String = config.getString("kafka.map.output.topic")
-  val kafkaEventInputTopic: String = config.getString("kafka.event.input.topic")
-  val kafkaEventOutputTopic: String = config.getString("kafka.event.output.topic")
-  val kafkaEventDuplicateTopic: String = config.getString("kafka.event.duplicate.topic")
   val kafkaStringInputTopic: String = config.getString("kafka.string.input.topic")
   val kafkaStringOutputTopic: String = config.getString("kafka.string.output.topic")
 
-  val testTopics = List(kafkaMapInputTopic, kafkaMapOutputTopic, kafkaEventInputTopic, kafkaEventOutputTopic,
-    kafkaStringInputTopic, kafkaStringOutputTopic)
+  val testTopics = List(kafkaMapInputTopic, kafkaMapOutputTopic, kafkaStringInputTopic, kafkaStringOutputTopic)
 
   override val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
 

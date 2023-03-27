@@ -7,8 +7,10 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.sunbird.obsrv.core.util.{PostgresConnect, PostgresConnectionConfig}
 
 
-class PostgresConnectSpec extends BaseSpec with Matchers with MockitoSugar {
+class PostgresConnectSpec extends BaseSpecWithPostgres with Matchers with MockitoSugar {
+
   val config: Config = ConfigFactory.load("base-test.conf")
+
   "PostgresConnection" should "able to connect and query the postgres" in {
 
     val postgresConfig = PostgresConnectionConfig(
@@ -35,20 +37,6 @@ class PostgresConnectSpec extends BaseSpec with Matchers with MockitoSugar {
     val resetConnection = postgresConnect.reset
     assertNotNull(resetConnection)
     postgresConnect.closeConnection()
-  }
-  it should "Re Connect while executing query if the the postgres connection is off " in {
-    val postgresConfig = PostgresConnectionConfig(
-      user = config.getString("postgres.user"),
-      password = config.getString("postgres.password"),
-      database = "postgres",
-      host = config.getString("postgres.host"),
-      port = config.getInt("postgres.port"),
-      maxConnections = config.getInt("postgres.maxConnections")
-    )
-    val postgresConnect = new PostgresConnect(postgresConfig)
-    //val connection = postgresConnect.getConnection
-    //connection.close()
-    //postgresConnect.execute("CREATE TABLE device_table3(id text PRIMARY KEY, channel text);")
   }
 
 }

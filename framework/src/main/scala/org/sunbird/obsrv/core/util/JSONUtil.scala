@@ -54,7 +54,9 @@ object JSONUtil {
     else new ParameterizedType {
       def getRawType: Class[_] = m.runtimeClass
       def getActualTypeArguments = m.typeArguments.map(typeFromManifest).toArray
+      // $COVERAGE-OFF$
       def getOwnerType = null
+      // $COVERAGE-ON$
     }
   }
 

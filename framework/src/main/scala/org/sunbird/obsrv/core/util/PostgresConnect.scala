@@ -33,20 +33,25 @@ class PostgresConnect(config: PostgresConnectionConfig) {
     statement = connection.createStatement
   }
 
-  private def getConnection: Connection = this.connection
-
   @throws[Exception]
   def closeConnection(): Unit = {
     connection.close()
   }
 
   @throws[Exception]
-  def execute(query: String): Boolean = try statement.execute(query)
-  catch {
-    case ex: SQLException =>
-      ex.printStackTrace() // TODO: Move this to system logs
-      reset
+  def execute(query: String): Boolean = {
+    try {
       statement.execute(query)
+    }
+    // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked if postgres connection is stale
+    catch {
+      case ex: SQLException =>
+
+        ex.printStackTrace() // TODO: Move this to system logs
+        reset
+        statement.execute(query)
+    }
+    // $COVERAGE-ON$
   }
 
   def executeQuery(query:String):ResultSet = statement.executeQuery(query)

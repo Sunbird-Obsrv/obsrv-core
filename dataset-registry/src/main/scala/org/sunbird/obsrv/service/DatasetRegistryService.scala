@@ -37,22 +37,6 @@ object DatasetRegistryService {
     }
   }
 
-  def readDataset(id: String): Option[Dataset] = {
-    val postgresConnect = new PostgresConnect(postgresConfig)
-    try {
-      val rs = postgresConnect.executeQuery("SELECT * FROM datasets where id='" + id + "'")
-      if(rs.next()) {
-        Some(parseDataset(rs))
-      } else None
-    } catch {
-      case ex: Exception =>
-        ex.printStackTrace()
-        None
-    } finally {
-      postgresConnect.closeConnection()
-    }
-  }
-
   def readAllDatasetTransformations(): Map[String, List[DatasetTransformation]] = {
 
     val postgresConnect = new PostgresConnect(postgresConfig)
@@ -99,7 +83,6 @@ object DatasetRegistryService {
     val datasetId = rs.getString("dataset_id")
     val fieldKey = rs.getString("field_key")
     val transformationFunction = rs.getString("transformation_function")
-    val fieldOutKey = rs.getString("field_out_key")
     val status = rs.getString("status")
 
     DatasetTransformation(id, datasetId, fieldKey, JSONUtil.deserialize[TransformationFunction](transformationFunction), status)

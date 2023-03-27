@@ -21,7 +21,7 @@ case class Metrics(metrics: Map[String, ConcurrentHashMap[String, AtomicLong]]) 
 
   private def getMetric(dataset: String, metric: String): AtomicLong = {
     val datasetMetrics: ConcurrentHashMap[String, AtomicLong] = metrics.getOrElse(dataset, new ConcurrentHashMap[String, AtomicLong]())
-    datasetMetrics.get(metric)
+    datasetMetrics.getOrDefault(metric, new AtomicLong())
   }
 
   def incCounter(dataset: String, metric: String): Unit = {
@@ -137,11 +137,7 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig[R]) extends Proce
   def getMetricsList(): MetricsList
 
   override def processElement(event: T, context: ProcessFunction[T, R]#Context, out: Collector[R]): Unit = {
-    try{
-      processElement(event, context, metrics)
-    } catch {
-      case ex: Exception => ex.printStackTrace()
-    }
+    processElement(event, context, metrics)
   }
 
 }
