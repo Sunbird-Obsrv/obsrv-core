@@ -50,7 +50,14 @@ class MergedPipelineStreamTaskTestSpec extends BaseSpecWithDatasetRegistry {
     BaseMetricsReporter.gaugeMetrics.clear()
     EmbeddedKafka.start()(embeddedKafkaConfig)
     createTestTopics()
-    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.EVENT_1)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.VALID_BATCH_EVENT_D1)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.MISSING_DATASET_BATCH_EVENT)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.UNREGISTERED_DATASET_BATCH_EVENT)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.DUPLICATE_BATCH_EVENT)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.INVALID_BATCH_EVENT_INCORRECT_EXTRACTION_KEY)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.INVALID_BATCH_EVENT_EXTRACTION_KEY_NOT_ARRAY)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.VALID_BATCH_EVENT_D2)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.INVALID_BATCH_EVENT_D2)
     flinkCluster.before()
   }
 
@@ -76,7 +83,7 @@ class MergedPipelineStreamTaskTestSpec extends BaseSpecWithDatasetRegistry {
     task.process(env)
     Future {
       env.execute(mergedPipelineConfig.jobName)
-      Thread.sleep(10000)
+      Thread.sleep(20000)
     }
     //val extractorFailed = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.input.topic"), 2, timeout = 60.seconds)
     val stats = EmbeddedKafka.consumeNumberMessagesFrom[String](mergedPipelineConfig.kafkaStatsTopic, 1, timeout = 20.seconds)

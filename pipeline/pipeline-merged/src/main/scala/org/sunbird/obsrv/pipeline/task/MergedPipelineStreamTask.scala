@@ -23,12 +23,14 @@ class MergedPipelineStreamTask(config: Config, mergedPipelineConfig: MergedPipel
 
   private val serialVersionUID = 146697324640926024L
 
+  // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked within flink cluster
   def process(): Unit = {
 
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(mergedPipelineConfig)
     process(env)
     env.execute(mergedPipelineConfig.jobName)
   }
+  // $COVERAGE-ON$
 
   /**
    * Created an overloaded process function to enable unit testing

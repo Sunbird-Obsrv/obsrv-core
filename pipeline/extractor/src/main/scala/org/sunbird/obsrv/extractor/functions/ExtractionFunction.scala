@@ -53,7 +53,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
     if (dataset.extractionConfig.isDefined && dataset.extractionConfig.get.isBatchEvent.get) {
       val eventAsText = JSONUtil.serialize(batchEvent)
       if (dataset.extractionConfig.get.dedupConfig.isDefined && dataset.extractionConfig.get.dedupConfig.get.dropDuplicates.get) {
-        val isDup = isDuplicate(dataset.extractionConfig.get.dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
+        val isDup = isDuplicate(dataset.id, dataset.extractionConfig.get.dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
         if (isDup) {
           metrics.incCounter(dataset.id, config.duplicateExtractionCount)
           context.output(config.duplicateEventOutputTag, markBatchFailed(batchEvent, ErrorConstants.DUPLICATE_BATCH_EVENT_FOUND))

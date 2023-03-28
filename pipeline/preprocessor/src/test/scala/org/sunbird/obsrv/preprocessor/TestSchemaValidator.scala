@@ -8,13 +8,15 @@ import org.sunbird.obsrv.model.DatasetModels.{Dataset, RouterConfig}
 import org.sunbird.obsrv.preprocessor.fixture.EventFixtures
 import org.sunbird.obsrv.preprocessor.task.PipelinePreprocessorConfig
 import org.sunbird.obsrv.preprocessor.util.SchemaValidator
+import org.sunbird.obsrv.core.exception.ObsrvException
 
 class TestSchemaValidator extends FlatSpec with Matchers {
 
+  val config = ConfigFactory.load("test.conf");
+  val pipelineProcessorConfig = new PipelinePreprocessorConfig(config)
+  val schemaValidator = new SchemaValidator(pipelineProcessorConfig)
+
   "SchemaValidator" should "return a success report for a valid event" in {
-    val config = ConfigFactory.load("test.conf");
-    val pipelineProcessorConfig = new PipelinePreprocessorConfig(config)
-    val schemaValidator = new SchemaValidator(pipelineProcessorConfig)
 
     val dataset = Dataset("obs2.0", None, None, None, Option(EventFixtures.schema), None, RouterConfig(""), "Active")
     schemaValidator.loadDataSchemas(List(dataset))
@@ -26,9 +28,6 @@ class TestSchemaValidator extends FlatSpec with Matchers {
   }
 
   it should "return a failed validation report for a invalid event" in {
-    val config = ConfigFactory.load("test.conf");
-    val pipelineProcessorConfig = new PipelinePreprocessorConfig(config)
-    val schemaValidator = new SchemaValidator(pipelineProcessorConfig)
 
     val dataset = Dataset("obs2.0", None, None, None, Option(EventFixtures.schema), None, RouterConfig(""), "Active")
     schemaValidator.loadDataSchemas(List(dataset))
@@ -38,6 +37,17 @@ class TestSchemaValidator extends FlatSpec with Matchers {
     assert(!report.isSuccess)
     assert(report.toString.contains("error: object has missing required properties ([\"obsCode\"])"))
 
+    val invalidFieldName = schemaValidator.getInvalidFieldName(report.toString)
+    invalidFieldName should be ("Unable to obtain field name for failed validation")
+  }
+
+  it should "validate the negative scenarios" in {
+    val dataset = Dataset("obs2.0", None, None, None, Option(EventFixtures.INVALID_SCHEMA), None, RouterConfig(""), "Active")
+    schemaValidator.loadDataSchemas(List(dataset))
+
+    val dataset2 = Dataset("obs2.0", None, None, None, None, None, RouterConfig(""), "Active")
+    an[ObsrvException] should be thrownBy(schemaValidator.schemaFileExists(dataset2))
+    schemaValidator.schemaFileExists(dataset) should be (false)
   }
 
 }

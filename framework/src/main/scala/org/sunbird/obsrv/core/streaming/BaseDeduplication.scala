@@ -14,13 +14,13 @@ trait BaseDeduplication {
 
   private[this] val logger = LoggerFactory.getLogger(classOf[BaseDeduplication])
 
-  def isDuplicate(dedupKey: Option[String], event: String,
+  def isDuplicate(datasetId: String, dedupKey: Option[String], event: String,
                   context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                   config: BaseJobConfig[_])
                  (implicit deDupEngine: DedupEngine): Boolean = {
 
     try {
-      val key = getDedupKey(dedupKey, event)
+      val key = datasetId+":"+getDedupKey(dedupKey, event)
       if (!deDupEngine.isUniqueEvent(key)) {
         logger.debug(s"Event with mid: $key is duplicate")
         true

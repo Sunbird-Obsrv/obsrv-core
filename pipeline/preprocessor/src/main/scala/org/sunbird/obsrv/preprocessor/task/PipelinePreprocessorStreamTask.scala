@@ -19,6 +19,7 @@ class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaCo
   private val serialVersionUID = 146697324640926024L
   implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
 
+  // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked within flink cluster
   def process(): Unit = {
 
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
@@ -26,6 +27,7 @@ class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaCo
     processStream(dataStream)
     env.execute(config.jobName)
   }
+  // $COVERAGE-ON$
 
   override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {
 

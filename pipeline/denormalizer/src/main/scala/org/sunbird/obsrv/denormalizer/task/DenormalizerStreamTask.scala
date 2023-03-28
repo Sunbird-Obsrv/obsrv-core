@@ -18,6 +18,7 @@ class DenormalizerStreamTask(config: DenormalizerConfig, kafkaConnector: FlinkKa
 
   private val serialVersionUID = -7729362727131516112L
 
+  // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked within flink cluster
   def process(): Unit = {
 
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
@@ -25,6 +26,7 @@ class DenormalizerStreamTask(config: DenormalizerConfig, kafkaConnector: FlinkKa
     processStream(dataStream)
     env.execute(config.jobName)
   }
+  // $COVERAGE-ON$
 
   override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {
     val denormStream = dataStream

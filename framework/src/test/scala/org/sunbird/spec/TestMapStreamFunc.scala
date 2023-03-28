@@ -36,14 +36,14 @@ class TestMapStreamFunc(config: BaseProcessTestMapConfig)(implicit val stringTyp
     val code = JSONUtil.getKey("event.vehicleCode", eventStr).textValue()
     val redisConnection = new RedisConnect(config.redisHost, config.redisPort, config.redisConnectionTimeout)
     implicit val dedupEngine = new DedupEngine(redisConnection, 2, 200)
-    val isDup = super.isDuplicate(Option("event.id"), eventStr, context, config)
+    val isDup = super.isDuplicate("D1", Option("event.id"), eventStr, context, config)
     code match {
       case "HYUN-CRE-D6" => assert(!isDup)
       case "HYUN-CRE-D7" => assert(isDup)
     }
 
-    assert(!super.isDuplicate(None, eventStr, context, config))
-    assert(!super.isDuplicate(Option("mid"), eventStr, context, config))
-    assert(!super.isDuplicate(Option("event"), eventStr, context, config))
+    assert(!super.isDuplicate("D1", None, eventStr, context, config))
+    assert(!super.isDuplicate("D1", Option("mid"), eventStr, context, config))
+    assert(!super.isDuplicate("D1", Option("event"), eventStr, context, config))
   }
 }

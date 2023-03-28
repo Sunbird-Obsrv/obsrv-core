@@ -62,7 +62,7 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig, @transient var d
     if (dedupConfig.isDefined && dedupConfig.get.dropDuplicates.get) {
       val event = msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]]
       val eventAsText = JSONUtil.serialize(event)
-      val isDup = isDuplicate(dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
+      val isDup = isDuplicate(dataset.id, dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
       if (isDup) {
         metrics.incCounter(dataset.id, config.duplicationEventMetricsCount)
         context.output(config.duplicateEventsOutputTag, markFailed(msg, ErrorConstants.DUPLICATE_EVENT_FOUND, "Deduplication"))
