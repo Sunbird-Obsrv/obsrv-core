@@ -120,14 +120,6 @@
             <version>2.0.3</version>
             <scope>test</scope>
         </dependency>
-        <!-- https://mvnrepository.com/artifact/io.zonky.test.postgres/embedded-postgres-binaries-darwin-amd64 -->
-        <!-- <dependency>
-            <groupId>io.zonky.test.postgres</groupId>
-            <artifactId>embedded-postgres-binaries-darwin-amd64</artifactId>
-            <version>15.2.0</version>
-            <scope>test</scope>
-        </dependency> -->
-
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>

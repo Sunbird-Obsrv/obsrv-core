@@ -24,7 +24,7 @@ class BaseSpecWithDatasetRegistry extends BaseSpecWithPostgres {
     insertTestData(postgresConnect)
   }
 
-  override protected def afterAll(): Unit = {
+  override def afterAll(): Unit = {
     super.afterAll()
   }
 

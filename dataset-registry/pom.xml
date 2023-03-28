@@ -13,10 +13,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<scala.maj.version>2.12</scala.maj.version>
 		<scala.version>2.12.11</scala.version>
-        <flink.version>1.15.2</flink.version>
-		<kafka.version>2.8.1</kafka.version>
 		<java.target.runtime>11</java.target.runtime>
-		<jackson-jaxrs.version>1.9.13</jackson-jaxrs.version>
 		<scoverage.plugin.version>1.4.0</scoverage.plugin.version>
 		<release-version>release-4.6.0</release-version>
     </properties>
@@ -59,18 +56,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>net.manub</groupId>
-            <artifactId>scalatest-embedded-kafka_${scala.maj.version}</artifactId>
-            <version>2.0.0</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.kafka</groupId>
-            <artifactId>kafka_${scala.maj.version}</artifactId>
-            <version>${kafka.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.zonky.test</groupId>
             <artifactId>embedded-postgres</artifactId>
             <version>2.0.3</version>
@@ -80,19 +65,6 @@
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <version>3.3.3</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.fiftyonred</groupId>
-            <artifactId>mock-jedis</artifactId>
-            <version>0.4.0</version>
-            <type>jar</type>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>it.ozimov</groupId>
-            <artifactId>embedded-redis</artifactId>
-            <version>0.7.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>

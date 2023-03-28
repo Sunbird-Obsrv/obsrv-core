@@ -17,7 +17,7 @@ class TestSchemaValidator extends FlatSpec with Matchers {
     val schemaValidator = new SchemaValidator(pipelineProcessorConfig)
 
     val dataset = Dataset("obs2.0", None, None, None, Option(EventFixtures.schema), None, RouterConfig(""), "Active")
-    schemaValidator.schemaFileExists(dataset)
+    schemaValidator.loadDataSchemas(List(dataset))
     val gson = new Gson()
 
     val event = JSONUtil.deserialize[Map[String, AnyRef]](EventFixtures.validEvent)
@@ -31,7 +31,7 @@ class TestSchemaValidator extends FlatSpec with Matchers {
     val schemaValidator = new SchemaValidator(pipelineProcessorConfig)
 
     val dataset = Dataset("obs2.0", None, None, None, Option(EventFixtures.schema), None, RouterConfig(""), "Active")
-    schemaValidator.schemaFileExists(dataset)
+    schemaValidator.loadDataSchemas(List(dataset))
 
     val event = JSONUtil.deserialize[Map[String, AnyRef]](EventFixtures.invalidEvent)
     val report = schemaValidator.validate("obs2.0", event)
