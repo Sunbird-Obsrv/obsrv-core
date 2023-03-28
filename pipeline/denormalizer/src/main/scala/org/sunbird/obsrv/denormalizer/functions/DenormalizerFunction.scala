@@ -46,7 +46,7 @@ class DenormalizerFunction(config: DenormalizerConfig)
 
     if (dataset.denormConfig.isDefined) {
       try {
-        msg.put(config.CONST_EVENT, denormCache.denormEvent(datasetId, event, dataset.denormConfig.get.denormFields))
+        msg.put(config.CONST_EVENT, denormCache.denormEvent(datasetId, event, dataset.denormConfig.get.denormFields).toMap)
         metrics.incCounter(datasetId, config.denormSuccess)
         context.output(config.denormEventsTag, markSuccess(msg, config.jobName))
       } catch {

@@ -26,9 +26,18 @@ class MergedPipelineStreamTask(config: Config, mergedPipelineConfig: MergedPipel
   def process(): Unit = {
 
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(mergedPipelineConfig)
+    process(env)
+    env.execute(mergedPipelineConfig.jobName)
+  }
+
+  /**
+   * Created an overloaded process function to enable unit testing
+   * @param env
+   */
+  def process(env: StreamExecutionEnvironment): Unit = {
+
     val dataStream = getMapDataStream(env, mergedPipelineConfig, kafkaConnector)
     processStream(dataStream)
-    env.execute(mergedPipelineConfig.jobName)
   }
 
   override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {

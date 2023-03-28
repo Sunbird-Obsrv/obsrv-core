@@ -4,10 +4,12 @@ import com.typesafe.config.{Config, ConfigFactory}
 import io.github.embeddedkafka.{EmbeddedKafka, EmbeddedKafkaConfig}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration
+import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.test.util.MiniClusterWithClientResource
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.sunbird.obsrv.BaseMetricsReporter
 import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
+import org.sunbird.obsrv.core.util.FlinkUtil
 import org.sunbird.obsrv.fixture.EventFixture
 import org.sunbird.obsrv.pipeline.task.{MergedPipelineConfig, MergedPipelineStreamTask}
 import org.sunbird.obsrv.spec.BaseSpecWithDatasetRegistry
@@ -69,13 +71,16 @@ class MergedPipelineStreamTaskTestSpec extends BaseSpecWithDatasetRegistry {
 
   "MergedPipelineStreamTaskTestSpec" should "validate the entire pipeline" in {
 
+    implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(mergedPipelineConfig)
     val task = new MergedPipelineStreamTask(config, mergedPipelineConfig, kafkaConnector)
+    task.process(env)
     Future {
-      task.process()
-      Thread.sleep(5000)
+      env.execute(mergedPipelineConfig.jobName)
+      Thread.sleep(10000)
     }
+    //val extractorFailed = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.input.topic"), 2, timeout = 60.seconds)
     val stats = EmbeddedKafka.consumeNumberMessagesFrom[String](mergedPipelineConfig.kafkaStatsTopic, 1, timeout = 20.seconds)
-    stats.foreach(Console.println("Stat:", _))
+    stats.foreach(Console.println("Stats:", _))
 
   }
 

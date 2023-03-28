@@ -86,7 +86,9 @@ class DenormCache(val config: DenormalizerConfig) {
   private def updateEvent(event: mutable.Map[String, AnyRef], responses: mutable.Map[String, Response[String]]): mutable.Map[String, AnyRef] = {
 
     responses.map(f => {
-      event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
+      if (f._2.get() != null) {
+        event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
+      }
     })
     event
   }
@@ -101,7 +103,7 @@ class DenormCache(val config: DenormalizerConfig) {
             event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
           }
         })
-        denormEvent.msg.put(config.CONST_EVENT, event)
+        denormEvent.msg.put(config.CONST_EVENT, event.toMap)
       }
       denormEvent
     })
