@@ -18,34 +18,34 @@ class TestSchemaValidator extends FlatSpec with Matchers {
 
   "SchemaValidator" should "return a success report for a valid event" in {
 
-    val dataset = Dataset("obs2.0", None, None, None, Option(EventFixtures.schema), None, RouterConfig(""), "Active")
+    val dataset = Dataset("d1", None, None, None, Option(EventFixtures.VALID_SCHEMA), None, RouterConfig(""), "Active")
     schemaValidator.loadDataSchemas(List(dataset))
     val gson = new Gson()
 
-    val event = JSONUtil.deserialize[Map[String, AnyRef]](EventFixtures.validEvent)
-    val report = schemaValidator.validate("obs2.0", event)
+    val event = JSONUtil.deserialize[Map[String, AnyRef]](EventFixtures.VALID_SCHEMA_EVENT)
+    val report = schemaValidator.validate("d1", event)
     assert(report.isSuccess)
   }
 
   it should "return a failed validation report for a invalid event" in {
 
-    val dataset = Dataset("obs2.0", None, None, None, Option(EventFixtures.schema), None, RouterConfig(""), "Active")
+    val dataset = Dataset("d1", None, None, None, Option(EventFixtures.VALID_SCHEMA), None, RouterConfig(""), "Active")
     schemaValidator.loadDataSchemas(List(dataset))
 
-    val event = JSONUtil.deserialize[Map[String, AnyRef]](EventFixtures.invalidEvent)
-    val report = schemaValidator.validate("obs2.0", event)
+    val event = JSONUtil.deserialize[Map[String, AnyRef]](EventFixtures.INVALID_SCHEMA_EVENT)
+    val report = schemaValidator.validate("d1", event)
     assert(!report.isSuccess)
-    assert(report.toString.contains("error: object has missing required properties ([\"obsCode\"])"))
+    assert(report.toString.contains("error: object has missing required properties ([\"vehicleCode\"])"))
 
     val invalidFieldName = schemaValidator.getInvalidFieldName(report.toString)
     invalidFieldName should be ("Unable to obtain field name for failed validation")
   }
 
   it should "validate the negative scenarios" in {
-    val dataset = Dataset("obs2.0", None, None, None, Option(EventFixtures.INVALID_SCHEMA), None, RouterConfig(""), "Active")
+    val dataset = Dataset("d1", None, None, None, Option(EventFixtures.INVALID_SCHEMA), None, RouterConfig(""), "Active")
     schemaValidator.loadDataSchemas(List(dataset))
 
-    val dataset2 = Dataset("obs2.0", None, None, None, None, None, RouterConfig(""), "Active")
+    val dataset2 = Dataset("d1", None, None, None, None, None, RouterConfig(""), "Active")
     an[ObsrvException] should be thrownBy(schemaValidator.schemaFileExists(dataset2))
     schemaValidator.schemaFileExists(dataset) should be (false)
   }

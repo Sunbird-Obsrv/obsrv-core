@@ -124,7 +124,7 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig[R]) extends Proce
   private val metrics: Metrics = registerMetrics(metricsList.datasets, metricsList.metrics)
 
   override def open(parameters: Configuration): Unit = {
-    metricsList.datasets.map { dataset =>
+    (metricsList.datasets ++ List(SystemConfig.defaultDatasetId)).map { dataset =>
       metricsList.metrics.map(metric => {
         getRuntimeContext.getMetricGroup.addGroup(config.jobName).addGroup(dataset)
           .gauge[Long, ScalaGauge[Long]](metric, ScalaGauge[Long](() => metrics.getAndReset(dataset, metric)))
@@ -137,7 +137,11 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig[R]) extends Proce
   def getMetricsList(): MetricsList
 
   override def processElement(event: T, context: ProcessFunction[T, R]#Context, out: Collector[R]): Unit = {
-    processElement(event, context, metrics)
+    try {
+      processElement(event, context, metrics)
+    } catch {
+      case exception: Exception => exception.printStackTrace()
+    }
   }
 
 }
@@ -148,7 +152,7 @@ abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig[O]) exte
   private val metrics: Metrics = registerMetrics(metricsList.datasets, metricsList.metrics)
 
   override def open(parameters: Configuration): Unit = {
-    metricsList.datasets.map { dataset =>
+    (metricsList.datasets ++ List(SystemConfig.defaultDatasetId)).map { dataset =>
       metricsList.metrics.map(metric => {
         getRuntimeContext.getMetricGroup.addGroup(config.jobName).addGroup(dataset)
           .gauge[Long, ScalaGauge[Long]](metric, ScalaGauge[Long](() => metrics.getAndReset(dataset, metric)))

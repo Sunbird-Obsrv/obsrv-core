@@ -13,10 +13,11 @@ import org.sunbird.obsrv.registry.DatasetRegistry
 
 import scala.collection.mutable
 
-class DeduplicationFunction(config: PipelinePreprocessorConfig, @transient var dedupEngine: DedupEngine = null)
+class DeduplicationFunction(config: PipelinePreprocessorConfig)
                            (implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]])
   extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
+  @transient private var dedupEngine: DedupEngine = null
   private[this] val logger = LoggerFactory.getLogger(classOf[DeduplicationFunction])
 
   override def getMetricsList(): MetricsList = {
@@ -29,10 +30,8 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig, @transient var d
 
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
-    if (dedupEngine == null) {
-      val redisConnect = new RedisConnect(config.redisHost, config.redisPort, config.redisConnectionTimeout)
-      dedupEngine = new DedupEngine(redisConnect, config.dedupStore, config.cacheExpirySeconds)
-    }
+    val redisConnect = new RedisConnect(config.redisHost, config.redisPort, config.redisConnectionTimeout)
+    dedupEngine = new DedupEngine(redisConnect, config.dedupStore, config.cacheExpirySeconds)
   }
 
   override def close(): Unit = {
@@ -46,17 +45,7 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig, @transient var d
 
     metrics.incCounter(config.defaultDatasetID, config.duplicationTotalMetricsCount)
     val datasetId = msg.get(config.CONST_DATASET)
-    if (datasetId.isEmpty) {
-      context.output(config.failedEventsOutputTag, markFailed(msg, ErrorConstants.MISSING_DATASET_ID, config.jobName))
-      metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
-      return
-    }
     val datasetOpt = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
-    if (datasetOpt.isEmpty) {
-      context.output(config.failedEventsOutputTag, markFailed(msg, ErrorConstants.MISSING_DATASET_CONFIGURATION, "Deduplication"))
-      metrics.incCounter(config.defaultDatasetID, config.eventFailedMetricsCount)
-      return
-    }
     val dataset = datasetOpt.get
     val dedupConfig = dataset.dedupConfig
     if (dedupConfig.isDefined && dedupConfig.get.dropDuplicates.get) {

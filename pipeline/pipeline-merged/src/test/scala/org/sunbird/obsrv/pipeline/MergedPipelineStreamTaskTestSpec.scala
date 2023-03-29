@@ -1,12 +1,12 @@
 package org.sunbird.obsrv.pipeline
 
-import com.typesafe.config.{Config, ConfigFactory}
 import io.github.embeddedkafka.{EmbeddedKafka, EmbeddedKafkaConfig}
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.test.util.MiniClusterWithClientResource
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.scalatest.Matchers._
 import org.sunbird.obsrv.BaseMetricsReporter
 import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
 import org.sunbird.obsrv.core.util.FlinkUtil
@@ -14,6 +14,7 @@ import org.sunbird.obsrv.fixture.EventFixture
 import org.sunbird.obsrv.pipeline.task.{MergedPipelineConfig, MergedPipelineStreamTask}
 import org.sunbird.obsrv.spec.BaseSpecWithDatasetRegistry
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
@@ -83,12 +84,19 @@ class MergedPipelineStreamTaskTestSpec extends BaseSpecWithDatasetRegistry {
     task.process(env)
     Future {
       env.execute(mergedPipelineConfig.jobName)
-      Thread.sleep(20000)
+      Thread.sleep(10000)
     }
-    //val extractorFailed = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.input.topic"), 2, timeout = 60.seconds)
-    val stats = EmbeddedKafka.consumeNumberMessagesFrom[String](mergedPipelineConfig.kafkaStatsTopic, 1, timeout = 20.seconds)
-    stats.foreach(Console.println("Stats:", _))
 
+    val stats = EmbeddedKafka.consumeNumberMessagesFrom[String](mergedPipelineConfig.kafkaStatsTopic, 1, timeout = 20.seconds)
+    stats.foreach(Console.println("Event:", _))
+
+    val mutableMetricsMap = mutable.Map[String, Long]();
+    BaseMetricsReporter.gaugeMetrics.toMap.mapValues(f => f.getValue()).map(f => mutableMetricsMap.put(f._1, f._2))
+
+    mutableMetricsMap.foreach(println(_))
+    //TODO: Add assertions
+    mergedPipelineConfig.successTag().getId should be ("processing_stats")
+    
   }
 
 

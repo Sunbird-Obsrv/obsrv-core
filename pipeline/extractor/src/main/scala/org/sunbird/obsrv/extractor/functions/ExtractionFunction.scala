@@ -82,7 +82,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
       context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED, obsrvMeta))
     } else {
       metrics.incCounter(dataset.id, config.skippedExtractionCount)
-      context.output(config.rawEventsOutputTag, markEventSkipped(dataset.id, eventData))
+      context.output(config.rawEventsOutputTag, markEventSkipped(dataset.id, eventData, obsrvMeta))
     }
   }
 
@@ -159,8 +159,9 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
     wrapperEvent
   }
 
-  private def markEventSkipped(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+  private def markEventSkipped(dataset: String, event: mutable.Map[String, AnyRef], obsrvMeta: Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
     val wrapperEvent = createWrapperEvent(dataset, event)
+    updateEvent(wrapperEvent, obsrvMeta)
     super.markSkipped(wrapperEvent, config.jobName)
     wrapperEvent
   }
