@@ -38,6 +38,7 @@ jobs:
     needs: [check-tag, docker-build]
     if: needs.check-tag.outputs.ALLOWED_TAG ==  'True' && vars.CLOUD_PROVIDER == 'aws'
     runs-on: ubuntu-latest
+    environment: aws-dev
     steps:
       - name: Clone the terraform deployment repo
         uses: actions/checkout@v3
