@@ -55,7 +55,7 @@ jobs:
         run: |
           cd deploy/terraform/aws
           terragrunt init
-          terragrunt apply -auto-approve --target=module.flink \
+          terragrunt apply -auto-approve -replace=module.flink \
           -var flink_container_registry=${{ secrets.DOCKERHUB_USERNAME }} \
           -var flink_image_tag=${{ github.ref_name }}
 
@@ -80,6 +80,6 @@ jobs:
         run: |
           cd deploy/terraform/azure
           terragrunt init
-          terragrunt apply -auto-approve --target=module.flink \
+          terragrunt apply -auto-approve -replace=module.flink \
           -var flink_container_registry=${{ secrets.DOCKERHUB_USERNAME }} \
           -var flink_image_tag=${{ github.ref_name }}
