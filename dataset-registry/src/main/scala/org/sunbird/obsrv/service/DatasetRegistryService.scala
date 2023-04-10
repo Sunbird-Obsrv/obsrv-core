@@ -1,6 +1,8 @@
 package org.sunbird.obsrv.service
 
 import com.typesafe.config.{Config, ConfigFactory}
+import org.slf4j.LoggerFactory
+import org.sunbird.obsrv.core.streaming.BaseDeduplication
 import org.sunbird.obsrv.core.util.{JSONUtil, PostgresConnect, PostgresConnectionConfig}
 import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetConfig, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
 
@@ -8,6 +10,8 @@ import java.io.File
 import java.sql.ResultSet
 
 object DatasetRegistryService {
+
+  private[this] val logger = LoggerFactory.getLogger(DatasetRegistryService.getClass)
 
   private val configFile = new File("/data/conf/base-config.conf")
   val config: Config = if (configFile.exists()) {
@@ -30,7 +34,7 @@ object DatasetRegistryService {
       }).toMap
     } catch {
       case ex: Exception =>
-        ex.printStackTrace()
+        logger.error("Exception while reading datasets from Postgres", ex)
         Map()
     } finally {
       postgresConnect.closeConnection()
@@ -48,7 +52,7 @@ object DatasetRegistryService {
       }).toList.groupBy(f => f._1).mapValues(f => f.map(x => x._2))
     } catch {
       case ex: Exception =>
-        ex.printStackTrace()
+        logger.error("Exception while reading dataset transformations from Postgres", ex)
         Map()
     } finally {
       postgresConnect.closeConnection()
@@ -72,7 +76,6 @@ object DatasetRegistryService {
       if (extractionConfig == null) None else Some(JSONUtil.deserialize[ExtractionConfig](extractionConfig)),
       if (dedupConfig == null) None else Some(JSONUtil.deserialize[DedupConfig](dedupConfig)),
       if (validationConfig == null) None else Some(JSONUtil.deserialize[ValidationConfig](validationConfig)),
-      // if (jsonSchema == null) None else Some(jsonSchema),
       Option(jsonSchema),
       if (denormConfig == null) None else Some(JSONUtil.deserialize[DenormConfig](denormConfig)),
       JSONUtil.deserialize[RouterConfig](routerConfig),

@@ -40,7 +40,7 @@ class SchemaValidator(config: PipelinePreprocessorConfig) extends java.io.Serial
       schemaMap.put(datasetId, (jsonSchema, true))
     } catch {
       case ex: Exception =>
-        // TODO: create system event for the error trace
+        logger.error("SchemaValidator:loadJsonSchema() - Exception", ex)
         throw new ObsrvException(ErrorConstants.INVALID_JSON_SCHEMA)
     }
   }
