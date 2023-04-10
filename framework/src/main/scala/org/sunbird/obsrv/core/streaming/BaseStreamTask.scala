@@ -33,4 +33,11 @@ abstract class BaseStreamTask[T] {
       .rebalance()
   }
 
+  def getStringDataStream(env: StreamExecutionEnvironment, config: BaseJobConfig[T], kafkaTopics: List[String],
+                          kafkaConsumerProperties: Properties, consumerSourceName: String, kafkaConnector: FlinkKafkaConnector): DataStream[String] = {
+    env.fromSource(kafkaConnector.kafkaStringSource(kafkaTopics, kafkaConsumerProperties), WatermarkStrategy.noWatermarks[String](), consumerSourceName)
+      .uid(consumerSourceName).setParallelism(config.kafkaConsumerParallelism)
+      .rebalance()
+  }
+
 }

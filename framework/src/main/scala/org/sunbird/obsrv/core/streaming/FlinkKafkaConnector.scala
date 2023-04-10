@@ -19,6 +19,14 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
       .build()
   }
 
+  def kafkaStringSource(kafkaTopic: List[String], consumerProperties: Properties): KafkaSource[String] = {
+    KafkaSource.builder[String]()
+      .setTopics(kafkaTopic.asJava)
+      .setDeserializer(new StringDeserializationSchema)
+      .setProperties(consumerProperties)
+      .build()
+  }
+
   def kafkaStringSink(kafkaTopic: String): KafkaSink[String] = {
     KafkaSink.builder[String]()
       .setDeliverGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
