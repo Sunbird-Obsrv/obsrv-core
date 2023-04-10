@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS datasets_denorm_config (
 CREATE INDEX IF NOT EXISTS datasets_denorm_config_status ON datasets_denorm_config(status);
 CREATE INDEX IF NOT EXISTS datasets_denorm_config_dataset ON datasets_denorm_config(dataset_id);
 
-CREATE TABLE IF NOT EXISTS datasets_source_config (
+CREATE TABLE IF NOT EXISTS dataset_source_config (
     id SERIAL PRIMARY KEY,
     dataset_id text NOT NULL REFERENCES datasets (id),
     connector_type text NOT NULL,
@@ -80,5 +80,5 @@ CREATE TABLE IF NOT EXISTS datasets_source_config (
     updated_date Date NOT NULL,
     UNIQUE(dataset_id)
 );
-CREATE INDEX IF NOT EXISTS datasets_source_config_status ON datasets_source_config(status);
-CREATE INDEX IF NOT EXISTS datasets_source_config_dataset ON datasets_source_config(dataset_id);
+CREATE INDEX IF NOT EXISTS dataset_source_config_status ON dataset_source_config(status);
+CREATE INDEX IF NOT EXISTS dataset_source_config_dataset ON dataset_source_config(dataset_id);

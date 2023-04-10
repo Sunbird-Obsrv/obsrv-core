@@ -5,7 +5,9 @@ import org.apache.flink.connector.kafka.sink.KafkaSink
 import org.apache.flink.connector.kafka.source.KafkaSource
 import org.sunbird.obsrv.core.serde._
 
+import java.util.Properties
 import scala.collection.mutable
+import scala.collection.JavaConverters._
 
 class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
 
@@ -13,7 +15,7 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
     KafkaSource.builder[String]()
       .setTopics(kafkaTopic)
       .setDeserializer(new StringDeserializationSchema)
-      .setProperties(config.kafkaConsumerProperties)
+      .setProperties(config.kafkaConsumerProperties())
       .build()
   }
 
@@ -29,7 +31,15 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
     KafkaSource.builder[mutable.Map[String, AnyRef]]()
       .setTopics(kafkaTopic)
       .setDeserializer(new MapDeserializationSchema)
-      .setProperties(config.kafkaConsumerProperties)
+      .setProperties(config.kafkaConsumerProperties())
+      .build()
+  }
+
+  def kafkaMapSource(kafkaTopics: List[String], consumerProperties: Properties): KafkaSource[mutable.Map[String, AnyRef]] = {
+    KafkaSource.builder[mutable.Map[String, AnyRef]]()
+      .setTopics(kafkaTopics.asJava)
+      .setDeserializer(new MapDeserializationSchema)
+      .setProperties(consumerProperties)
       .build()
   }
 

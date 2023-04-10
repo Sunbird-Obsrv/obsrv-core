@@ -59,10 +59,10 @@ abstract class BaseJobConfig[T](val config: Config, val jobName: String) extends
 
   def successTag(): OutputTag[T]
 
-  def kafkaConsumerProperties: Properties = {
+  def kafkaConsumerProperties(kafkaBrokerServers: Option[String] = None, kafkaConsumerGroup: Option[String] = None): Properties = {
     val properties = new Properties()
-    properties.setProperty("bootstrap.servers", kafkaConsumerBrokerServers)
-    properties.setProperty("group.id", groupId)
+    properties.setProperty("bootstrap.servers", kafkaBrokerServers.getOrElse(kafkaConsumerBrokerServers))
+    properties.setProperty("group.id", kafkaConsumerGroup.getOrElse(groupId))
     properties.setProperty(ConsumerConfig.ISOLATION_LEVEL_CONFIG, "read_committed")
     kafkaAutoOffsetReset.map {
       properties.setProperty("auto.offset.reset", _)
