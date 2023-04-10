@@ -20,8 +20,6 @@ class KafkaConnectorStreamTask(config: KafkaConnectorConfig, kafkaConnector: Fli
   // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked within flink cluster
   def process(): Unit = {
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
-    implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
-    implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
     val datasetSourceConfig = DatasetRegistry.getDatasetSourceConfig()
     datasetSourceConfig.map { configList =>
@@ -33,14 +31,13 @@ class KafkaConnectorStreamTask(config: KafkaConnectorConfig, kafkaConnector: Fli
               kafkaConsumerGroup = Some(s"kafka-${dataSourceConfig.connectorConfig.topic}")),
               s"kafka-${dataSourceConfig.connectorConfig.topic}", kafkaConnector)
           val datasetId = dataSourceConfig.datasetId
+          val kafkaOutputTopic = DatasetRegistry.getDataset(datasetId).get.datasetConfig.entryTopic
           val resultMapStream: DataStream[mutable.Map[String, AnyRef]] = dataStream.map {
             streamMap: mutable.Map[String, AnyRef] => {
-              val result: mutable.Map[String, AnyRef] = streamMap + ("datasetId" -> datasetId)
-              result
+              streamMap + ("datasetId" -> datasetId)
             }
           }.returns(classOf[mutable.Map[String, AnyRef]])
-          print(resultMapStream)
-          resultMapStream.sinkTo(kafkaConnector.kafkaMapSink(config.kafkaOutputTopic))
+          resultMapStream.sinkTo(kafkaConnector.kafkaMapSink(kafkaOutputTopic))
             .name(s"${datasetId}-kafka-connector-sink").uid(s"${datasetId}-kafka-connector-sink")
             .setParallelism(config.downstreamOperatorsParallelism)
       }
