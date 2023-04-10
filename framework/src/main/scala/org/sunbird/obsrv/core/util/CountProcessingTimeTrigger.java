@@ -1,4 +1,4 @@
-package org.sunbird.obsrv.denormalizer.util;
+package org.sunbird.obsrv.core.util;
 
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.common.state.ReducingState;
@@ -25,7 +25,7 @@ public class CountProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
         count.add(1L);
         if ((Long) count.get() >= this.maxCount) {
             count.clear();
-            return TriggerResult.FIRE;
+            return TriggerResult.FIRE_AND_PURGE;
         } else {
             return TriggerResult.CONTINUE;
         }
@@ -36,7 +36,7 @@ public class CountProcessingTimeTrigger extends Trigger<Object, TimeWindow> {
     }
 
     public TriggerResult onProcessingTime(long time, TimeWindow window, Trigger.TriggerContext ctx) {
-        return TriggerResult.FIRE;
+        return TriggerResult.FIRE_AND_PURGE;
     }
 
     public void clear(TimeWindow window, Trigger.TriggerContext ctx) {

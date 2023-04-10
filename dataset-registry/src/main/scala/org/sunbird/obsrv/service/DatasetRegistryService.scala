@@ -2,14 +2,14 @@ package org.sunbird.obsrv.service
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.sunbird.obsrv.core.util.{JSONUtil, PostgresConnect, PostgresConnectionConfig}
-import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
+import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetConfig, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
 
 import java.io.File
 import java.sql.ResultSet
 
 object DatasetRegistryService {
 
-  val configFile = new File("/data/conf/base-config.conf")
+  private val configFile = new File("/data/conf/base-config.conf")
   val config: Config = if (configFile.exists()) {
     ConfigFactory.parseFile(configFile).resolve()
   } else {
@@ -58,15 +58,17 @@ object DatasetRegistryService {
 
   private def parseDataset(rs: ResultSet): Dataset = {
     val datasetId = rs.getString("id")
+    val datasetType = rs.getString("type")
     val validationConfig = rs.getString("validation_config")
     val extractionConfig = rs.getString("extraction_config")
     val dedupConfig = rs.getString("dedup_config")
     val jsonSchema = rs.getString("data_schema")
     val denormConfig = rs.getString("denorm_config")
     val routerConfig = rs.getString("router_config")
+    val datasetConfig = rs.getString("dataset_config")
     val status = rs.getString("status")
 
-    Dataset(datasetId,
+    Dataset(datasetId, datasetType,
       if (extractionConfig == null) None else Some(JSONUtil.deserialize[ExtractionConfig](extractionConfig)),
       if (dedupConfig == null) None else Some(JSONUtil.deserialize[DedupConfig](dedupConfig)),
       if (validationConfig == null) None else Some(JSONUtil.deserialize[ValidationConfig](validationConfig)),
@@ -74,6 +76,7 @@ object DatasetRegistryService {
       Option(jsonSchema),
       if (denormConfig == null) None else Some(JSONUtil.deserialize[DenormConfig](denormConfig)),
       JSONUtil.deserialize[RouterConfig](routerConfig),
+      JSONUtil.deserialize[DatasetConfig](datasetConfig),
       status
     )
   }

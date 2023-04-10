@@ -3,18 +3,15 @@ package org.sunbird.obsrv.denormalizer.task
 import com.typesafe.config.ConfigFactory
 import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.java.functions.KeySelector
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.datastream.WindowedStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
-import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
-import org.sunbird.obsrv.core.util.FlinkUtil
+import org.sunbird.obsrv.core.util.{DatasetKeySelector, FlinkUtil, TumblingProcessingTimeCountWindows}
 import org.sunbird.obsrv.denormalizer.functions.DenormalizerWindowFunction
-import org.sunbird.obsrv.denormalizer.util.TumblingProcessingTimeCountWindows
 
 import java.io.File
 import scala.collection.mutable
@@ -34,7 +31,7 @@ class DenormalizerWindowStreamTask(config: DenormalizerConfig, kafkaConnector: F
     val source = kafkaConnector.kafkaMapSource(config.inputTopic())
     val windowedStream: WindowedStream[mutable.Map[String, AnyRef], String, TimeWindow] = env.fromSource(source, WatermarkStrategy.noWatermarks[mutable.Map[String, AnyRef]](), config.denormalizationConsumer).uid(config.denormalizationConsumer)
       .setParallelism(config.kafkaConsumerParallelism).rebalance()
-      .keyBy(new DenormKeySelector())
+      .keyBy(new DatasetKeySelector())
       .window(TumblingProcessingTimeCountWindows.of(Time.seconds(config.windowTime), config.windowCount))
 
     val denormStream = windowedStream
@@ -65,10 +62,3 @@ object DenormalizerWindowStreamTask {
   }
 }
 // $COVERAGE-ON$
-
-class DenormKeySelector() extends KeySelector[mutable.Map[String, AnyRef], String] {
-
-  override def getKey(in: mutable.Map[String, AnyRef]): String = {
-    in("dataset").asInstanceOf[String]
-  }
-}

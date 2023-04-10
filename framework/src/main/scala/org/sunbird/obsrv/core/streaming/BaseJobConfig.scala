@@ -53,6 +53,8 @@ abstract class BaseJobConfig[T](val config: Config, val jobName: String) extends
   val checkpointingBaseUrl: Option[String] = if (config.hasPath("job")) Option(config.getString("job.statebackend.base.url")) else None
 
   // Base Methods
+  def datasetType(): String = if(config.hasPath("dataset.type")) config.getString("dataset.type") else "dataset"
+
   def inputTopic(): String
 
   def inputConsumer(): String

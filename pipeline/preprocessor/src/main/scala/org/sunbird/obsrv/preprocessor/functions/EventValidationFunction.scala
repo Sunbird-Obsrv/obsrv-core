@@ -26,14 +26,14 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.validationTotalMetricsCount, config.validationFailureMetricsCount,
       config.validationSuccessMetricsCount, config.validationSkipMetricsCount, config.eventFailedMetricsCount)
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
+    MetricsList(DatasetRegistry.getDataSetIds(config.datasetType()), metrics)
   }
 
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     if (schemaValidator == null) {
       schemaValidator = new SchemaValidator(config)
-      schemaValidator.loadDataSchemas(DatasetRegistry.getAllDatasets())
+      schemaValidator.loadDataSchemas(DatasetRegistry.getAllDatasets(config.datasetType()))
     }
   }
 

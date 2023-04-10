@@ -27,7 +27,7 @@ class DruidRouterFunction(config: DruidRouterConfig) extends BaseProcessFunction
 
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.routerTotalCount, config.routerSuccessCount)
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
+    MetricsList(DatasetRegistry.getDataSetIds(config.datasetType()), metrics)
   }
 
   override def processElement(msg: mutable.Map[String, AnyRef],
