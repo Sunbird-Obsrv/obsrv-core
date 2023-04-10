@@ -22,7 +22,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.successEventCount, config.systemEventCount, config.failedEventCount, config.failedExtractionCount,
       config.skippedExtractionCount, config.duplicateExtractionCount, config.totalEventCount, config.successExtractionCount)
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
+    MetricsList(DatasetRegistry.getDataSetIds(config.datasetType()), metrics)
   }
 
   override def open(parameters: Configuration): Unit = {

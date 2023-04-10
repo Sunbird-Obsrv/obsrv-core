@@ -1,11 +1,13 @@
 CREATE TABLE IF NOT EXISTS datasets (
     id text PRIMARY KEY,
+    type text NOT NULL,
     validation_config json,
     extraction_config json,
     dedup_config json,
     data_schema json,
     denorm_config json,
     router_config json NOT NULL,
+    dataset_config json NOT NULL,
     status text NOT NULL,
     created_by text NOT NULL,
     updated_by text NOT NULL,
@@ -16,10 +18,10 @@ CREATE TABLE IF NOT EXISTS datasets (
 CREATE INDEX IF NOT EXISTS datasets_status ON datasets(status);
 
 CREATE TABLE IF NOT EXISTS datasources (
-    id text PRIMARY KEY,
+    datasource text PRIMARY KEY,
     dataset_id text REFERENCES datasets (id),
     ingestion_spec json NOT NULL,
-    datasource text NOT NULL,
+    datasource_ref text NOT NULL,
     retention_period json,
     archival_policy json,
     purge_policy json,
@@ -73,6 +75,7 @@ CREATE TABLE IF NOT EXISTS dataset_source_config (
     dataset_id text NOT NULL REFERENCES datasets (id),
     connector_type text NOT NULL,
     connector_config json NOT NULL,
+    connector_stats json NOT NULL,
     status text NOT NULL,
     created_by text NOT NULL,
     updated_by text NOT NULL,

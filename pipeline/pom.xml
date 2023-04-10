@@ -27,7 +27,8 @@
 		<module>druid-router</module>
 		<module>pipeline-merged</module>
         <module>kafka-connector</module>
-    </modules>
+		<module>master-data-processor</module>
+	</modules>
 
 	<properties>
 		<!-- maven specific properties -->

@@ -25,7 +25,7 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig)
       config.duplicationTotalMetricsCount, config.duplicationSkippedEventMetricsCount, config.duplicationEventMetricsCount,
       config.duplicationProcessedEventMetricsCount, config.eventFailedMetricsCount
     )
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
+    MetricsList(DatasetRegistry.getDataSetIds(config.datasetType()), metrics)
   }
 
   override def open(parameters: Configuration): Unit = {

@@ -21,13 +21,13 @@ class DenormalizerFunction(config: DenormalizerConfig)
 
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.denormSuccess, config.denormTotal, config.denormFailed, config.eventsSkipped)
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
+    MetricsList(DatasetRegistry.getDataSetIds(config.datasetType()), metrics)
   }
 
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     denormCache = new DenormCache(config)
-    denormCache.open(DatasetRegistry.getAllDatasets())
+    denormCache.open(DatasetRegistry.getAllDatasets(config.datasetType()))
   }
 
   override def close(): Unit = {

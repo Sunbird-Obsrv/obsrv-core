@@ -168,7 +168,11 @@ abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig[O]) exte
               metrics: Metrics): Unit
 
   override def process(key: K, context: ProcessWindowFunction[I, O, K, TimeWindow]#Context, elements: lang.Iterable[I], out: Collector[O]): Unit = {
-    process(key, context, elements, metrics)
+    try {
+      process(key, context, elements, metrics)
+    } catch {
+      case exception: Exception => exception.printStackTrace()
+    }
   }
 
 }

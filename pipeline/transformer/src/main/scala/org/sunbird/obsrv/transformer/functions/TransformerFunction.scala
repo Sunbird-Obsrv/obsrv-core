@@ -15,7 +15,7 @@ class TransformerFunction(config: TransformerConfig)(implicit val eventTypeInfo:
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.totalEventCount, config.transformSuccessCount,
       config.transformFailedCount, config.transformSkippedCount)
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
+    MetricsList(DatasetRegistry.getDataSetIds(config.datasetType()), metrics)
   }
 
 

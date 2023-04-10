@@ -1,4 +1,4 @@
-package org.sunbird.obsrv.denormalizer.util;
+package org.sunbird.obsrv.core.util;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
