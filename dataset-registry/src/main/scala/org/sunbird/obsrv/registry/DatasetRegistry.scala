@@ -8,8 +8,8 @@ object DatasetRegistry {
   private val datasets: Map[String, Dataset] = DatasetRegistryService.readAllDatasets()
   private val datasetTransformations: Map[String, List[DatasetTransformation]] = DatasetRegistryService.readAllDatasetTransformations()
 
-  def getAllDatasets(): List[Dataset] = {
-    datasets.values.toList
+  def getAllDatasets(datasetType: String): List[Dataset] = {
+    datasets.filter(f => f._2.datasetType.equals(datasetType)).values.toList
   }
 
   def getDataset(id: String): Option[Dataset] = {
@@ -20,8 +20,8 @@ object DatasetRegistry {
     datasetTransformations.get(id)
   }
 
-  def getDataSetIds(): List[String] = {
-    datasets.keySet.toList
+  def getDataSetIds(datasetType: String): List[String] = {
+    datasets.filter(f => f._2.datasetType.equals(datasetType)).keySet.toList
   }
 
 }

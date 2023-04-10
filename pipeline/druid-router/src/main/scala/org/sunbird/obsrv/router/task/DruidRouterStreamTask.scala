@@ -36,7 +36,7 @@ class DruidRouterStreamTask(config: DruidRouterConfig, kafkaConnector: FlinkKafk
   override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {
 
     implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
-    val datasets = DatasetRegistry.getAllDatasets()
+    val datasets = DatasetRegistry.getAllDatasets(config.datasetType())
 
     val routerStream = dataStream.process(new DruidRouterFunction(config)).name(config.druidRouterFunction).uid(config.druidRouterFunction)
       .setParallelism(config.downstreamOperatorsParallelism)

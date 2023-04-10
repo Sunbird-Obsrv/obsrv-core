@@ -24,13 +24,13 @@ class DenormalizerWindowFunction(config: DenormalizerConfig)(implicit val eventT
 
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.denormSuccess, config.denormTotal, config.denormFailed, config.eventsSkipped)
-    MetricsList(DatasetRegistry.getDataSetIds(), metrics)
+    MetricsList(DatasetRegistry.getDataSetIds(config.datasetType()), metrics)
   }
 
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     denormCache = new DenormCache(config)
-    denormCache.open(DatasetRegistry.getAllDatasets())
+    denormCache.open(DatasetRegistry.getAllDatasets(config.datasetType()))
   }
 
   override def close(): Unit = {
@@ -38,11 +38,9 @@ class DenormalizerWindowFunction(config: DenormalizerConfig)(implicit val eventT
     denormCache.close()
   }
 
-  override def process(key: String, context: ProcessWindowFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef], String, TimeWindow]#Context, elements: lang.Iterable[mutable.Map[String, AnyRef]], metrics: Metrics): Unit = {
+  override def process(datasetId: String, context: ProcessWindowFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef], String, TimeWindow]#Context, elements: lang.Iterable[mutable.Map[String, AnyRef]], metrics: Metrics): Unit = {
 
     val eventsList = elements.asScala.toList
-    val msg = eventsList.head
-    val datasetId = msg(config.CONST_DATASET).asInstanceOf[String] // DatasetId cannot be empty at this stage
     metrics.incCounter(datasetId, config.denormTotal, eventsList.size.toLong)
     val dataset = DatasetRegistry.getDataset(datasetId).get
     val denormEvents = eventsList.map(msg => {

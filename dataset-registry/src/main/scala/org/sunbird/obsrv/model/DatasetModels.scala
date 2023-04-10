@@ -30,16 +30,15 @@ object DatasetModels {
 
   case class RouterConfig(@JsonProperty("topic") topic: String)
 
-  case class Dataset(@JsonProperty("id") id: String, @JsonProperty("extraction_config") extractionConfig: Option[ExtractionConfig],
+  case class DatasetConfig(@JsonProperty("data_key") key: String, @JsonProperty("timestamp_key") tsKey: String,
+                           @JsonProperty("entry_topic") entryTopic: String, @JsonProperty("exclude_fields") excludeFields: Option[List[String]] = None,
+                           @JsonProperty("redis_db_host") redisDBHost: Option[String] = None, @JsonProperty("redis_db_port") redisDBPort: Option[Int] = None,
+                           @JsonProperty("redis_db") redisDB: Option[Int] = None)
+
+  case class Dataset(@JsonProperty("id") id: String, @JsonProperty("type") datasetType: String , @JsonProperty("extraction_config") extractionConfig: Option[ExtractionConfig],
                      @JsonProperty("dedup_config") dedupConfig: Option[DedupConfig], @JsonProperty("validation_config") validationConfig: Option[ValidationConfig],
                      @JsonProperty("data_schema") jsonSchema: Option[String], @JsonProperty("denorm_config") denormConfig: Option[DenormConfig],
-                     @JsonProperty("router_config") routerConfig: RouterConfig, @JsonProperty("status") status: String)
-
-  case class Datasource(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
-                        @JsonProperty("ingestion_spec") ingestionSpec: String, @JsonProperty("datasource") datasource: String,
-                        @JsonProperty("retention_policy") retentionPolicy: Option[String], @JsonProperty("archival_policy") archivalPolicy: Option[String],
-                        @JsonProperty("purge_policy") purgePolicy: Option[String], @JsonProperty("backup_config") backupConfig: Option[String],
-                        @JsonProperty("status") status: String)
+                     @JsonProperty("router_config") routerConfig: RouterConfig, datasetConfig: DatasetConfig, @JsonProperty("status") status: String)
 
   case class Condition(@JsonProperty("type") `type`: String, @JsonProperty("expr") expr: String)
 
