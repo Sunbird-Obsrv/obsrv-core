@@ -64,6 +64,9 @@ class MasterDataProcessorFunction(config: MasterDataProcessorConfig) extends Win
     metrics.incCounter(datasetId, config.successUpdateCount, result._2)
     metrics.incCounter(datasetId, config.successEventCount, eventsList.size.toLong)
 
-    context.output(config.successTag(), markComplete(eventsList.head))
+    eventsList.foreach(event => {
+      event.remove(config.CONST_EVENT)
+      context.output(config.successTag(), markComplete(event))
+    })
   }
 }

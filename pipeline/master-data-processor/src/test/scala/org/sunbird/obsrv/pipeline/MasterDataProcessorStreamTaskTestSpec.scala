@@ -88,9 +88,8 @@ class MasterDataProcessorStreamTaskTestSpec extends BaseSpecWithDatasetRegistry 
       env.execute(masterDataConfig.jobName)
     }
 
-    val input = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.stats.topic"), 3, timeout = 30.seconds)
-    //input.foreach(Console.println("Event:", _))
-    input.size should be (3)
+    val input = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.stats.topic"), 4, timeout = 30.seconds)
+    input.size should be (4)
 
     val mutableMetricsMap = mutable.Map[String, Long]();
     BaseMetricsReporter.gaugeMetrics.toMap.mapValues(f => f.getValue()).map(f => mutableMetricsMap.put(f._1, f._2))
