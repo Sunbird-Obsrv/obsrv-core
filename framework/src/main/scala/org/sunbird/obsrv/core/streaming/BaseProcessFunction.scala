@@ -6,6 +6,7 @@ import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.apache.flink.streaming.api.functions.windowing.ProcessWindowFunction
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
+import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.model.SystemConfig
 import org.sunbird.obsrv.core.util.Util
@@ -120,6 +121,7 @@ trait BaseFunction {
 
 abstract class BaseProcessFunction[T, R](config: BaseJobConfig[R]) extends ProcessFunction[T, R] with BaseDeduplication with JobMetrics with BaseFunction {
 
+  private[this] val logger = LoggerFactory.getLogger(this.getClass)
   private val metricsList = getMetricsList()
   private val metrics: Metrics = registerMetrics(metricsList.datasets, metricsList.metrics)
 
@@ -140,7 +142,8 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig[R]) extends Proce
     try {
       processElement(event, context, metrics)
     } catch {
-      case exception: Exception => exception.printStackTrace()
+      case exception: Exception =>
+        logger.error(s"${config.jobName}:processElement - Exception", exception)
     }
   }
 
@@ -148,6 +151,7 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig[R]) extends Proce
 
 abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig[O]) extends ProcessWindowFunction[I, O, K, TimeWindow] with BaseDeduplication with JobMetrics with BaseFunction {
 
+  private[this] val logger = LoggerFactory.getLogger(this.getClass)
   private val metricsList = getMetricsList()
   private val metrics: Metrics = registerMetrics(metricsList.datasets, metricsList.metrics)
 
@@ -171,7 +175,7 @@ abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig[O]) exte
     try {
       process(key, context, elements, metrics)
     } catch {
-      case exception: Exception => exception.printStackTrace()
+      case exception: Exception => logger.error(s"${config.jobName}:processElement - Exception", exception)
     }
   }
 

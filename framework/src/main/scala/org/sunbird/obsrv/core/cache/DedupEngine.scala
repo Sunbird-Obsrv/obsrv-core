@@ -1,10 +1,13 @@
 package org.sunbird.obsrv.core.cache
 
+import org.slf4j.LoggerFactory
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.exceptions.JedisException
 
 
 class DedupEngine(redisConnect: RedisConnect, store: Int, expirySeconds: Int) extends Serializable {
+
+  private[this] val logger = LoggerFactory.getLogger(classOf[DedupEngine])
 
   private val serialVersionUID = 6089562751616425354L
   private[this] var redisConnection: Jedis = redisConnect.getConnection
@@ -17,7 +20,7 @@ class DedupEngine(redisConnect: RedisConnect, store: Int, expirySeconds: Int) ex
       unique = !redisConnection.exists(checksum)
     } catch {
       case ex: JedisException =>
-        ex.printStackTrace()
+        logger.error("DedupEngine:isUniqueEvent() - Exception", ex)
         this.redisConnection.close()
         this.redisConnection = redisConnect.getConnection(this.store, backoffTimeInMillis = 10000)
         unique = !this.redisConnection.exists(checksum)
@@ -31,7 +34,7 @@ class DedupEngine(redisConnect: RedisConnect, store: Int, expirySeconds: Int) ex
       redisConnection.setex(checksum, expirySeconds, "")
     catch {
       case ex: JedisException =>
-        ex.printStackTrace()
+        logger.error("DedupEngine:storeChecksum() - Exception", ex)
         this.redisConnection.close()
         this.redisConnection = redisConnect.getConnection(this.store, backoffTimeInMillis = 10000)
         this.redisConnection.select(this.store)

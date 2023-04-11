@@ -28,7 +28,6 @@ abstract class BaseJobConfig[T](val config: Config, val jobName: String) extends
   val groupId: String = config.getString("kafka.groupId")
   val restartAttempts: Int = config.getInt("task.restart-strategy.attempts")
   val delayBetweenAttempts: Long = config.getLong("task.restart-strategy.delay")
-  val parallelism: Int = config.getInt("task.parallelism")
   val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
   val downstreamOperatorsParallelism: Int = config.getInt("task.downstream.operators.parallelism")
   // Only for Tests

@@ -61,7 +61,7 @@ class DenormCache(val config: DenormalizerConfig) {
         denormEvent.responses = Some(responses)
       } catch {
         case ex: ObsrvException =>
-          ex.printStackTrace()
+          logger.error("DenormCache:denormMultipleEvents() - Exception", ex)
           denormEvent.error = Some(ex.error)
       }
     })

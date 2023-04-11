@@ -1,11 +1,15 @@
 package org.sunbird.obsrv.core.util
 
-import java.sql.{Connection, ResultSet, SQLException, Statement}
 import org.postgresql.ds.PGSimpleDataSource
+import org.slf4j.LoggerFactory
+
+import java.sql.{Connection, ResultSet, SQLException, Statement}
 
 final case class PostgresConnectionConfig(user: String, password: String, database: String, host: String, port: Int, maxConnections: Int)
 
 class PostgresConnect(config: PostgresConnectionConfig) {
+
+  private[this] val logger = LoggerFactory.getLogger(classOf[PostgresConnect])
 
   private var source: PGSimpleDataSource = null
 
@@ -46,8 +50,7 @@ class PostgresConnect(config: PostgresConnectionConfig) {
     // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked if postgres connection is stale
     catch {
       case ex: SQLException =>
-
-        ex.printStackTrace() // TODO: Move this to system logs
+        logger.error("PostgresConnect:execute() - Exception", ex)
         reset
         statement.execute(query)
     }

@@ -15,7 +15,7 @@ class RedisConnect(redisHost: String, redisPort: Int, defaultTimeOut: Int) exten
       // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked during interrupt
     catch {
       case e: InterruptedException =>
-        e.printStackTrace()
+        logger.error("RedisConnect:getConnection() - Exception", e)
     }
     // $COVERAGE-ON$
     logger.info("Obtaining new Redis connection...")
