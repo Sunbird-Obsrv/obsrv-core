@@ -26,6 +26,7 @@
 		<module>transformer</module>
 		<module>druid-router</module>
 		<module>pipeline-merged</module>
+        <module>kafka-connector</module>
 		<module>master-data-processor</module>
 	</modules>
 

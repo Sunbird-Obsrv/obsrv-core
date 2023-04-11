@@ -2,7 +2,7 @@ package org.sunbird.obsrv.service
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.sunbird.obsrv.core.util.{JSONUtil, PostgresConnect, PostgresConnectionConfig}
-import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetConfig, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
+import org.sunbird.obsrv.model.DatasetModels.{ConnectorConfig, Dataset, DatasetConfig, DatasetSourceConfig, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
 
 import java.io.File
 import java.sql.ResultSet
@@ -32,6 +32,24 @@ object DatasetRegistryService {
       case ex: Exception =>
         ex.printStackTrace()
         Map()
+    } finally {
+      postgresConnect.closeConnection()
+    }
+  }
+
+  def readAllDatasetSourceConfig(): Option[List[DatasetSourceConfig]] = {
+
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    try {
+      val rs = postgresConnect.executeQuery("SELECT * FROM dataset_source_config")
+      Option(Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
+        val datasetSourceConfig = parseDatasetSourceConfig(result)
+        datasetSourceConfig
+      }).toList)
+    } catch {
+      case ex: Exception =>
+        ex.printStackTrace()
+        None
     } finally {
       postgresConnect.closeConnection()
     }
@@ -77,6 +95,19 @@ object DatasetRegistryService {
       if (denormConfig == null) None else Some(JSONUtil.deserialize[DenormConfig](denormConfig)),
       JSONUtil.deserialize[RouterConfig](routerConfig),
       JSONUtil.deserialize[DatasetConfig](datasetConfig),
+      status
+    )
+  }
+
+  private def parseDatasetSourceConfig(rs: ResultSet): DatasetSourceConfig = {
+    val id = rs.getString("id")
+    val datasetId = rs.getString("dataset_id")
+    val connectorType = rs.getString("connector_type")
+    val connectorConfig = rs.getString("connector_config")
+    val status = rs.getString("status")
+
+    DatasetSourceConfig(id = id, datasetId = datasetId, connectorType = connectorType,
+      JSONUtil.deserialize[ConnectorConfig](connectorConfig),
       status
     )
   }

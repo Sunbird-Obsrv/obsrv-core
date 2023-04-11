@@ -48,6 +48,11 @@ object DatasetModels {
                                    @JsonProperty("field_key") fieldKey: String, @JsonProperty("transformation_function") transformationFunction: TransformationFunction,
                                    @JsonProperty("status") status: String)
 
+  case class ConnectorConfig(@JsonProperty("kafkaBrokers") kafkaBrokers: String, @JsonProperty("topic") topic: String)
+  case class DatasetSourceConfig(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
+                                 @JsonProperty("connector_type") connectorType: String, @JsonProperty("connector_config") connectorConfig: ConnectorConfig,
+                                 @JsonProperty("status") status: String)
+
 
 }
 
