@@ -33,7 +33,7 @@ object DatasetModels {
   case class DatasetConfig(@JsonProperty("data_key") key: String, @JsonProperty("timestamp_key") tsKey: String,
                            @JsonProperty("entry_topic") entryTopic: String, @JsonProperty("exclude_fields") excludeFields: Option[List[String]] = None,
                            @JsonProperty("redis_db_host") redisDBHost: Option[String] = None, @JsonProperty("redis_db_port") redisDBPort: Option[Int] = None,
-                           @JsonProperty("redis_db") redisDB: Option[Int] = None)
+                           @JsonProperty("redis_db") redisDB: Option[Int] = None, @JsonProperty("index_data") indexData: Option[Boolean] = None)
 
   case class Dataset(@JsonProperty("id") id: String, @JsonProperty("type") datasetType: String , @JsonProperty("extraction_config") extractionConfig: Option[ExtractionConfig],
                      @JsonProperty("dedup_config") dedupConfig: Option[DedupConfig], @JsonProperty("validation_config") validationConfig: Option[ValidationConfig],
@@ -52,6 +52,8 @@ object DatasetModels {
   case class DatasetSourceConfig(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
                                  @JsonProperty("connector_type") connectorType: String, @JsonProperty("connector_config") connectorConfig: ConnectorConfig,
                                  @JsonProperty("status") status: String)
+  case class DataSource(@JsonProperty("datasource") datasource: String, @JsonProperty("dataset_id") datasetId: String,
+                        @JsonProperty("ingestion_spec") ingestionSpec: String, @JsonProperty("datasource_ref") datasourceRef: String)
 
 
 }

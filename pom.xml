@@ -23,6 +23,7 @@
 		<module>framework</module>
 		<module>dataset-registry</module>
 		<module>pipeline</module>
+		<module>data-products</module>
 	</modules>
 
 	<properties>
