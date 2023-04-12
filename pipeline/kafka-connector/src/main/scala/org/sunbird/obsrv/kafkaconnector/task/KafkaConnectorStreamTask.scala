@@ -1,14 +1,14 @@
 package org.sunbird.obsrv.kafkaconnector.task
 
 import com.typesafe.config.ConfigFactory
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
-import org.apache.flink.streaming.api.datastream.{DataStream, SingleOutputStreamOperator}
+import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.sunbird.obsrv.core.streaming.{BaseStreamTask, FlinkKafkaConnector}
 import org.sunbird.obsrv.core.util.FlinkUtil
 import org.sunbird.obsrv.registry.DatasetRegistry
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 import java.io.File
 import scala.collection.mutable
@@ -34,7 +34,7 @@ class KafkaConnectorStreamTask(config: KafkaConnectorConfig, kafkaConnector: Fli
           val kafkaOutputTopic = DatasetRegistry.getDataset(datasetId).get.datasetConfig.entryTopic
           val resultMapStream: DataStream[mutable.Map[String, AnyRef]] = dataStream.map {
             streamMap: mutable.Map[String, AnyRef] => {
-              streamMap + ("datasetId" -> datasetId)
+              streamMap + ("datasetId" -> datasetId, "syncts" -> new DateTime(DateTimeZone.UTC))
             }
           }.returns(classOf[mutable.Map[String, AnyRef]])
           resultMapStream.sinkTo(kafkaConnector.kafkaMapSink(kafkaOutputTopic))

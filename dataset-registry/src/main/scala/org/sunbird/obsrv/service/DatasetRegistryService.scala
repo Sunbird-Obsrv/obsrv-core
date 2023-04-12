@@ -13,7 +13,7 @@ object DatasetRegistryService {
 
   private[this] val logger = LoggerFactory.getLogger(DatasetRegistryService.getClass)
 
-  private val configFile = new File("/data/conf/base-config.conf")
+  private val configFile = new File("/data/flink/conf/base-config.conf")
   val config: Config = if (configFile.exists()) {
     ConfigFactory.parseFile(configFile).resolve()
   } else {

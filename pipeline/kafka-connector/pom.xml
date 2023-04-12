@@ -43,6 +43,11 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>joda-time</groupId>
+            <artifactId>joda-time</artifactId>
+            <version>2.12.5</version>
+        </dependency>
+        <dependency>
             <groupId>org.sunbird.obsrv</groupId>
             <artifactId>framework</artifactId>
             <version>1.0.0</version>
