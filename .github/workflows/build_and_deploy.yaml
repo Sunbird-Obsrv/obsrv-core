@@ -33,7 +33,7 @@ jobs:
         with:
           platforms: linux/amd64
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/obsrv-core:${{ github.ref_name }}, ${{ secrets.DOCKERHUB_USERNAME }}/obsrv-core:latest
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/obsrv-core:${{ github.ref_name }}
 
   aws-deploy:
     needs: [check-tag, docker-build]
@@ -55,10 +55,10 @@ jobs:
           AWS_REGION: ${{ vars.AWS_REGION }}
         run: |
           cd deploy/terraform/aws
-          terraform init -backend-config="bucket=${{ vars.AWS_TERRAFORM_BACKEND_BUCKET_NAME }}" \
-          -backend-config="region=${{ vars.AWS_TERRAFORM_BACKEND_BUCKET_REGION }}" \
-          -backend-config="key=terraform.tfstate"
-          terraform apply -auto-approve -var flink_container_registry=${{ secrets.DOCKERHUB_USERNAME }}
+          terragrunt init
+          terragrunt apply -auto-approve -replace=module.flink \
+          -var flink_container_registry=${{ secrets.DOCKERHUB_USERNAME }} \
+          -var flink_image_tag=${{ github.ref_name }}
 
   azure-deploy:
     needs: [check-tag, docker-build]
@@ -80,8 +80,7 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
         run: |
           cd deploy/terraform/azure
-          terraform init -backend-config="resource_group_name=${{ vars.AZURE_TERRAFORM_BACKEND_RG }}" \
-          -backend-config="storage_account_name=${{ vars.AZURE_TERRAFORM_BACKEND_STORAGE_ACCOUNT }}" \
-          -backend-config="container_name=${{ vars.AZURE_TERRAFORM_BACKEND_CONTAINER }}" \
-          -backend-config="key=terraform.tfstate"
-          terraform apply -auto-approve -var flink_container_registry=${{ secrets.DOCKERHUB_USERNAME }}
+          terragrunt init
+          terragrunt apply -auto-approve -replace=module.flink \
+          -var flink_container_registry=${{ secrets.DOCKERHUB_USERNAME }} \
+          -var flink_image_tag=${{ github.ref_name }}
