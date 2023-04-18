@@ -17,18 +17,17 @@ class KafkaConnectorConfig (override val config: Config) extends BaseJobConfig[m
 
   // Kafka Topics Configuration
   val kafkaInputTopic: String = config.getString("kafka.input.topic")
-  val kafkaOutputTopic: String = config.getString("kafka.output.topic")
-  private val RAW_EVENTS_OUTPUT_TAG = "raw-events"
-  val rawEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](RAW_EVENTS_OUTPUT_TAG)
+  // val kafkaOutputTopic: String = config.getString("kafka.output.topic")
 
   val totalEventCount = "total-event-count"
   val successEventCount = "success-event-count"
   val failedEventCount = "failed-event-count"
 
-  override def inputTopic(): String = kafkaInputTopic
+  override def inputTopic(): String = ""
+  override def inputConsumer(): String = ""
 
-  override def inputConsumer(): String = "kafka-connector-consumer"
-
-  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = rawEventsOutputTag
+  private val DUMMY_OUTPUT_TAG = "dummy-events"
+  val dummyOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](DUMMY_OUTPUT_TAG)
+  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = dummyOutputTag
 
 }

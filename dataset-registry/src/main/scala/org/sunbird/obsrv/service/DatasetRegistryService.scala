@@ -13,14 +13,18 @@ object DatasetRegistryService {
 
   private[this] val logger = LoggerFactory.getLogger(DatasetRegistryService.getClass)
 
-  private val configFile = new File("/data/flink/conf/base-config.conf")
+  private val configFile = new File("/data/flink/conf/baseconfig.conf")
   val config: Config = if (configFile.exists()) {
     ConfigFactory.parseFile(configFile).resolve()
   } else {
-    ConfigFactory.load("base-config.conf").withFallback(ConfigFactory.systemEnvironment())
+    ConfigFactory.load("baseconfig.conf").withFallback(ConfigFactory.systemEnvironment())
   }
   private val postgresConfig = PostgresConnectionConfig(config.getString("postgres.user"), config.getString("postgres.password"),
-    config.getString("postgres.database"), config.getString("postgres.host"), config.getInt("postgres.port"),
+    config.getString("postgres.database"),
+    // config.getString("postgres.host"),
+    "postgresql-hl.postgresql.svc.cluster.local",
+    // config.getInt("postgres.port"),
+    5432,
     config.getInt("postgres.maxConnections"))
 
   def readAllDatasets(): Map[String, Dataset] = {
