@@ -51,7 +51,7 @@
         <dependency>
             <groupId>org.json4s</groupId>
             <artifactId>json4s-native_${scala.maj.version}</artifactId>
-            <version>4.0.6</version>
+            <version>3.6.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
