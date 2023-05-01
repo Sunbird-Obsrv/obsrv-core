@@ -21,10 +21,8 @@ object DatasetRegistryService {
   }
   private val postgresConfig = PostgresConnectionConfig(config.getString("postgres.user"), config.getString("postgres.password"),
     config.getString("postgres.database"),
-    // config.getString("postgres.host"),
-    "postgresql-hl.postgresql.svc.cluster.local",
-    // config.getInt("postgres.port"),
-    5432,
+    config.getString("postgres.host"),
+    config.getInt("postgres.port"),
     config.getInt("postgres.maxConnections"))
 
   def readAllDatasets(): Map[String, Dataset] = {
