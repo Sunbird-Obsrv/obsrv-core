@@ -3,6 +3,8 @@ package org.sunbird.obsrv.core.streaming
 import org.apache.flink.connector.base.DeliveryGuarantee
 import org.apache.flink.connector.kafka.sink.KafkaSink
 import org.apache.flink.connector.kafka.source.KafkaSource
+import org.apache.flink.connector.kafka.source.enumerator.initializer.OffsetsInitializer
+import org.apache.kafka.clients.consumer.OffsetResetStrategy
 import org.sunbird.obsrv.core.serde._
 
 import java.util.Properties
@@ -16,6 +18,7 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
       .setTopics(kafkaTopic)
       .setDeserializer(new StringDeserializationSchema)
       .setProperties(config.kafkaConsumerProperties())
+      .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
       .build()
   }
 
@@ -24,6 +27,7 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
       .setTopics(kafkaTopic.asJava)
       .setDeserializer(new StringDeserializationSchema)
       .setProperties(consumerProperties)
+      .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
       .build()
   }
 
@@ -40,6 +44,7 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
       .setTopics(kafkaTopic)
       .setDeserializer(new MapDeserializationSchema)
       .setProperties(config.kafkaConsumerProperties())
+      .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
       .build()
   }
 
@@ -48,6 +53,7 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
       .setTopics(kafkaTopics.asJava)
       .setDeserializer(new MapDeserializationSchema)
       .setProperties(consumerProperties)
+      .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
       .build()
   }
 
