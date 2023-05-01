@@ -28,8 +28,8 @@ class KafkaConnectorStreamTask(config: KafkaConnectorConfig, kafkaConnector: Fli
           val dataStream: DataStream[mutable.Map[String, AnyRef]] =
             getMapDataStream(env, config, List(dataSourceConfig.connectorConfig.topic),
             config.kafkaConsumerProperties(kafkaBrokerServers = Some(dataSourceConfig.connectorConfig.kafkaBrokers),
-              kafkaConsumerGroup = Some(s"kafka-${dataSourceConfig.connectorConfig.topic}")),
-              s"kafka-${dataSourceConfig.connectorConfig.topic}", kafkaConnector)
+              kafkaConsumerGroup = Some(s"kafka-${dataSourceConfig.connectorConfig.topic}-consumer")),
+              consumerSourceName = s"kafka-${dataSourceConfig.connectorConfig.topic}", kafkaConnector)
           val datasetId = dataSourceConfig.datasetId
           val kafkaOutputTopic = DatasetRegistry.getDataset(datasetId).get.datasetConfig.entryTopic
           val resultMapStream: DataStream[mutable.Map[String, AnyRef]] = dataStream.map {
