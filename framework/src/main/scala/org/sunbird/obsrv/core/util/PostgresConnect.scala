@@ -22,8 +22,8 @@ class PostgresConnect(config: PostgresConnectionConfig) {
   private def buildPoolConfig(): Unit = {
     Class.forName("org.postgresql.Driver")
     source = new PGSimpleDataSource()
-    source.setServerName(config.host)
-    source.setPortNumber(config.port)
+    source.setServerNames(Array(config.host))
+    source.setPortNumbers(Array(config.port))
     source.setUser(config.user)
     source.setPassword(config.password)
     source.setDatabaseName(config.database)
