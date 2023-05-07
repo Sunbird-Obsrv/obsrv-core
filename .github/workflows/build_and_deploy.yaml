@@ -53,6 +53,8 @@ jobs:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_TERRAFORM_BACKEND_BUCKET_NAME: ${{ vars.AWS_TERRAFORM_BACKEND_BUCKET_NAME }}
+          AWS_TERRAFORM_BACKEND_BUCKET_REGION: ${{ vars.AWS_TERRAFORM_BACKEND_BUCKET_REGION }}
         run: |
           cd deploy/terraform/aws
           terragrunt init
