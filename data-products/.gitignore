@@ -1,0 +1,6 @@
+**/.settings
+dependency-reduced-pom.xml
+**/target
+**/logs
+**/.idea/**
+**.iml

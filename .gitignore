@@ -5,3 +5,5 @@ dependency-reduced-pom.xml
 .idea
 .classpath
 *.DS_Store
+test-data-generator/node_modules
+package-lock.json
