@@ -85,4 +85,5 @@ abstract class BaseJobConfig[T](val config: Config, val jobName: String) extends
   val CONST_OBSRV_META = "obsrv_meta"
   val CONST_DATASET = "dataset"
   val CONST_EVENT = "event"
+  val CONST_TIMESTAMP = "syncts"
 }

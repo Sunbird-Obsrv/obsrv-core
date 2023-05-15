@@ -8,6 +8,8 @@ import org.sunbird.obsrv.core.model.ErrorConstants
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.model.Models.{PData, SystemEvent}
 import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.{DateTime, DateTimeZone}
 import org.sunbird.obsrv.core.util.Util.getMutableMap
 import org.sunbird.obsrv.core.util.{JSONUtil, Util}
 import org.sunbird.obsrv.extractor.task.ExtractorConfig
@@ -77,6 +79,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
     val eventData = Util.getMutableMap(batchEvent(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
     val eventJson = JSONUtil.serialize(eventData)
     val eventSize = eventJson.getBytes("UTF-8").length
+    addTimestamp(eventData)
     if (eventSize > config.eventMaxSize) {
       metrics.incCounter(dataset.id, config.failedEventCount)
       context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED, obsrvMeta))
@@ -95,6 +98,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
         val eventData = getMutableMap(immutableEvent)
         val eventJson = JSONUtil.serialize(eventData)
         val eventSize = eventJson.getBytes("UTF-8").length
+        addTimestamp(eventData)
         if (eventSize > config.eventMaxSize) {
           metrics.incCounter(dataset.id, config.failedEventCount)
           context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED, obsrvMeta))
@@ -128,6 +132,13 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
 
   private def updateEvent(event: mutable.Map[String, AnyRef], obsrvMeta: Map[String, AnyRef]) = {
     event.put(config.CONST_OBSRV_META, obsrvMeta)
+  }
+
+  /**
+   * Method to add timestamp to the event of when it is received by system
+   */
+  private def addTimestamp(event: mutable.Map[String, AnyRef]) = {
+    event.put(config.CONST_TIMESTAMP, DateTime.now(DateTimeZone.UTC).getMillis.asInstanceOf[AnyRef])
   }
 
   /**
