@@ -39,6 +39,7 @@ class DruidRouterFunction(config: DruidRouterConfig) extends BaseProcessFunction
     metrics.incCounter(datasetId, config.routerTotalCount)
     val dataset = DatasetRegistry.getDataset(datasetId).get
     val event = Util.getMutableMap(msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
+    event.put(config.CONST_OBSRV_META, msg(config.CONST_OBSRV_META))
     val routerConfig = dataset.routerConfig
     ctx.output(OutputTag[mutable.Map[String, AnyRef]](routerConfig.topic), event)
     metrics.incCounter(datasetId, config.routerSuccessCount)
