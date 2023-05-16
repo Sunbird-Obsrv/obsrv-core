@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS datasources (
     status text NOT NULL,
     created_by text NOT NULL,
     updated_by text NOT NULL,
-    created_date Date NOT NULL,
-    updated_date Date NOT NULL
+    created_date timestamp NOT NULL,
+    updated_date timestamp NOT NULL
 );
 CREATE INDEX IF NOT EXISTS datasources_status ON datasources(status);
 CREATE INDEX IF NOT EXISTS datasources_dataset ON datasources(dataset_id);
@@ -43,8 +43,8 @@ CREATE TABLE IF NOT EXISTS dataset_transformations (
     status text NOT NULL,
     created_by text NOT NULL,
     updated_by text NOT NULL,
-    created_date Date NOT NULL,
-    updated_date Date NOT NULL,
+    created_date timestamp NOT NULL,
+    updated_date timestamp NOT NULL,
     UNIQUE(field_key, dataset_id)
 );
 CREATE INDEX IF NOT EXISTS dataset_transformations_status ON dataset_transformations(status);
@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS dataset_source_config (
     status text NOT NULL,
     created_by text NOT NULL,
     updated_by text NOT NULL,
-    created_date Date NOT NULL,
-    updated_date Date NOT NULL,
+    created_date timestamp NOT NULL,
+    updated_date timestamp NOT NULL,
     UNIQUE(dataset_id)
 );
 CREATE INDEX IF NOT EXISTS dataset_source_config_status ON dataset_source_config(status);
