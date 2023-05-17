@@ -34,6 +34,15 @@ object JSONUtil {
     mapper.readValue(json, typeReference[T])
   }
 
+  def isJSON(jsonString: String): Boolean = {
+    try {
+      mapper.readTree(jsonString)
+      true
+    } catch {
+      case _: Exception => false
+    }
+  }
+
   def convertValue(map: Map[String, AnyRef]): JsonNode = {
     mapper.convertValue[JsonNode](map, classOf[JsonNode])
   }

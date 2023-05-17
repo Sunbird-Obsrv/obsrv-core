@@ -5,7 +5,7 @@ import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.sunbird.obsrv.core.streaming.{BaseStreamTask, FlinkKafkaConnector}
-import org.sunbird.obsrv.core.util.FlinkUtil
+import org.sunbird.obsrv.core.util.{FlinkUtil, JSONUtil}
 import org.sunbird.obsrv.registry.DatasetRegistry
 import org.joda.time.DateTime
 import org.joda.time.DateTimeZone
@@ -13,7 +13,7 @@ import org.joda.time.DateTimeZone
 import java.io.File
 import scala.collection.mutable
 
-class KafkaConnectorStreamTask(config: KafkaConnectorConfig, kafkaConnector: FlinkKafkaConnector) extends BaseStreamTask[mutable.Map[String, AnyRef]] {
+class KafkaConnectorStreamTask(config: KafkaConnectorConfig, kafkaConnector: FlinkKafkaConnector) extends BaseStreamTask[String] {
 
   private val serialVersionUID = -7729362727131516112L
 
@@ -23,29 +23,33 @@ class KafkaConnectorStreamTask(config: KafkaConnectorConfig, kafkaConnector: Fli
 
     val datasetSourceConfig = DatasetRegistry.getDatasetSourceConfig()
     datasetSourceConfig.map { configList =>
-      val dataStreamList = configList.filter(_.connectorType.equalsIgnoreCase("kafka")).map {
+      configList.filter(_.connectorType.equalsIgnoreCase("kafka")).map {
         dataSourceConfig =>
-          val dataStream: DataStream[mutable.Map[String, AnyRef]] =
-            getMapDataStream(env, config, List(dataSourceConfig.connectorConfig.topic),
+          val dataStream: DataStream[String] =
+            getStringDataStream(env, config, List(dataSourceConfig.connectorConfig.topic),
             config.kafkaConsumerProperties(kafkaBrokerServers = Some(dataSourceConfig.connectorConfig.kafkaBrokers),
               kafkaConsumerGroup = Some(s"kafka-${dataSourceConfig.connectorConfig.topic}-consumer")),
               consumerSourceName = s"kafka-${dataSourceConfig.connectorConfig.topic}", kafkaConnector)
           val datasetId = dataSourceConfig.datasetId
           val kafkaOutputTopic = DatasetRegistry.getDataset(datasetId).get.datasetConfig.entryTopic
-          val resultMapStream: DataStream[mutable.Map[String, AnyRef]] = dataStream.map {
-            streamMap: mutable.Map[String, AnyRef] => {
-              streamMap + ("datasetId" -> datasetId, "syncts" -> new DateTime(DateTimeZone.UTC))
+          val resultMapStream: DataStream[String] = dataStream
+            .filter{msg: String => JSONUtil.isJSON(msg)}.returns(classOf[String]) // TODO: Add a metric to capture invalid JSON messages
+            .map { streamMap: String => {
+              val mutableMap = JSONUtil.deserialize[mutable.Map[String, AnyRef]](streamMap)
+              mutableMap.put("datasetId", datasetId)
+              mutableMap.put("syncts", new DateTime(DateTimeZone.UTC))
+              JSONUtil.serialize(mutableMap)
             }
-          }.returns(classOf[mutable.Map[String, AnyRef]])
-          resultMapStream.sinkTo(kafkaConnector.kafkaMapSink(kafkaOutputTopic))
-            .name(s"${datasetId}-kafka-connector-sink").uid(s"${datasetId}-kafka-connector-sink")
+          }.returns(classOf[String])
+          resultMapStream.sinkTo(kafkaConnector.kafkaStringSink(kafkaOutputTopic))
+            .name(s"$datasetId-kafka-connector-sink").uid(s"$datasetId-kafka-connector-sink")
             .setParallelism(config.downstreamOperatorsParallelism)
       }
       env.execute(config.jobName)
     }
   }
 
-  override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {
+  override def processStream(dataStream: DataStream[String]): DataStream[String] = {
     null
   }
   // $COVERAGE-ON$
