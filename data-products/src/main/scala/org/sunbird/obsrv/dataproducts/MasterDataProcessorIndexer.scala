@@ -117,7 +117,7 @@ object MasterDataProcessorIndexer {
     val readWriteConf = ReadWriteConfig(scanCount = 1000, maxPipelineSize = 1000)
     val rdd = sc.fromRedisKV("*")(readWriteConfig = readWriteConf)
       .map(f => JSONUtil.deserialize[mutable.Map[String, AnyRef]](f._2))
-      .map(f => f.put("syntcs", timestamp.asInstanceOf[AnyRef]))
+      .map(f => f.put("syncts", timestamp.asInstanceOf[AnyRef]))
       .map(f => JSONUtil.serialize(f))
       .coalesce(1)
       .saveAsTextFile(outputFilePath)
