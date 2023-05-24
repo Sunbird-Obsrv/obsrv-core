@@ -15,10 +15,6 @@ class KafkaConnectorConfig (override val config: Config) extends BaseJobConfig[S
   implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
   implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
-  // Kafka Topics Configuration
-  // val kafkaOutputTopic: String = config.getString("kafka.output.topic")
-
-
   override def inputTopic(): String = ""
   override def inputConsumer(): String = ""
 

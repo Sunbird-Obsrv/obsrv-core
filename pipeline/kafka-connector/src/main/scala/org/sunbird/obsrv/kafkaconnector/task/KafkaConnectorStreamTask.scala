@@ -36,8 +36,8 @@ class KafkaConnectorStreamTask(config: KafkaConnectorConfig, kafkaConnector: Fli
             .filter{msg: String => JSONUtil.isJSON(msg)}.returns(classOf[String]) // TODO: Add a metric to capture invalid JSON messages
             .map { streamMap: String => {
               val mutableMap = JSONUtil.deserialize[mutable.Map[String, AnyRef]](streamMap)
-              mutableMap.put("datasetId", datasetId)
-              mutableMap.put("syncts", new DateTime(DateTimeZone.UTC))
+              mutableMap.put("dataset", datasetId)
+              mutableMap.put("syncts", java.lang.Long.valueOf(new DateTime(DateTimeZone.UTC).getMillis))
               JSONUtil.serialize(mutableMap)
             }
           }.returns(classOf[String])
