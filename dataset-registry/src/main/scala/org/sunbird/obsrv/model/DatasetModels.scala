@@ -14,6 +14,7 @@ object DatasetModels {
   case class ExtractionConfig(@JsonProperty("is_batch_event") isBatchEvent: Option[Boolean] = Some(false),
                               @JsonProperty("extraction_key") extractionKey: Option[String] = Some("events"),
                               @JsonProperty("dedup_config") dedupConfig: Option[DedupConfig])
+  case class Tags(tags: Array[String])
 
   case class DedupConfig(@JsonProperty("drop_duplicates") dropDuplicates: Option[Boolean] = Some(false),
                          @JsonProperty("dedup_key") dedupKey: Option[String],
@@ -38,7 +39,7 @@ object DatasetModels {
   case class Dataset(@JsonProperty("id") id: String, @JsonProperty("type") datasetType: String , @JsonProperty("extraction_config") extractionConfig: Option[ExtractionConfig],
                      @JsonProperty("dedup_config") dedupConfig: Option[DedupConfig], @JsonProperty("validation_config") validationConfig: Option[ValidationConfig],
                      @JsonProperty("data_schema") jsonSchema: Option[String], @JsonProperty("denorm_config") denormConfig: Option[DenormConfig],
-                     @JsonProperty("router_config") routerConfig: RouterConfig, datasetConfig: DatasetConfig, @JsonProperty("status") status: String)
+                     @JsonProperty("router_config") routerConfig: RouterConfig, datasetConfig: DatasetConfig, @JsonProperty("status") status: String, @JsonProperty("tags") tags: Option[Array[String]] = None)
 
   case class Condition(@JsonProperty("type") `type`: String, @JsonProperty("expr") expr: String)
 
