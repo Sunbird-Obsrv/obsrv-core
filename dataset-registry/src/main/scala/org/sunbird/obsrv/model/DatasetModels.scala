@@ -14,7 +14,6 @@ object DatasetModels {
   case class ExtractionConfig(@JsonProperty("is_batch_event") isBatchEvent: Option[Boolean] = Some(false),
                               @JsonProperty("extraction_key") extractionKey: Option[String] = Some("events"),
                               @JsonProperty("dedup_config") dedupConfig: Option[DedupConfig])
-  case class Tags(tags: Array[String])
 
   case class DedupConfig(@JsonProperty("drop_duplicates") dropDuplicates: Option[Boolean] = Some(false),
                          @JsonProperty("dedup_key") dedupKey: Option[String],
