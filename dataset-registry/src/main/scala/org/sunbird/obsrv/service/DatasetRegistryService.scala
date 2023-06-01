@@ -138,7 +138,7 @@ object DatasetRegistryService {
       JSONUtil.deserialize[RouterConfig](routerConfig),
       JSONUtil.deserialize[DatasetConfig](datasetConfig),
       status,
-      if (tags == null ) None else Option(tags)
+      Option(tags)
     )
   }
 
