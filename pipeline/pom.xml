@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+				 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+				 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<prerequisites>
+		<maven>3.0.0</maven>
+	</prerequisites>
+
+	<groupId>org.sunbird.obsrv</groupId>
+	<artifactId>pipeline</artifactId>
+	<version>1.0</version>
+	<packaging>pom</packaging>
+	<name>Core Data Pipeline</name>
+	<description>
+		Core Pipeline Jobs for Data Processing
+	</description>
+	<url>https://sunbird.org/</url>
+
+	<modules>
+		<module>extractor</module>
+		<module>preprocessor</module>
+		<module>denormalizer</module>
+		<module>transformer</module>
+		<module>druid-router</module>
+		<module>pipeline-merged</module>
+        <module>kafka-connector</module>
+		<module>master-data-processor</module>
+	</modules>
+
+	<properties>
+		<!-- maven specific properties -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<scala.maj.version>2.12</scala.maj.version>
+		<scala.version>2.12.11</scala.version>
+		<flink.version>1.15.2</flink.version>
+		<kafka.version>2.8.1</kafka.version>
+		<java.target.runtime>11</java.target.runtime>
+		<jackson-jaxrs.version>1.9.13</jackson-jaxrs.version>
+		<scoverage.plugin.version>1.4.0</scoverage.plugin.version>
+	</properties>
+
+	<repositories>
+		<repository>
+			<id>my-local-repo</id>
+			<url>file://${user.home}/.m2/repository</url>
+		</repository>
+		<repository>
+			<id>apache-releases</id>
+			<url>https://repository.apache.org/content/groups/public</url>
+		</repository>
+		<repository>
+			<id>scala-tools.org</id>
+			<name>Scala-tools Maven2 Repository</name>
+			<url>https://oss.sonatype.org/content/groups/scala-tools</url>
+		</repository>
+	</repositories>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>scala-tools.org</id>
+			<name>Scala-tools Maven2 Repository</name>
+			<url>http://scala-tools.org/repo-releases</url>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<dependencies>
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-streaming-scala_${scala.maj.version}</artifactId>
+			<version>${flink.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.8.1</version>
+					<configuration>
+						<source>${java.target.runtime}</source>
+						<target>${java.target.runtime}</target>
+					</configuration>
+				</plugin>
+				<plugin>
+				<groupId>org.scoverage</groupId>
+					<artifactId>scoverage-maven-plugin</artifactId>
+					<version>${scoverage.plugin.version}</version>
+					<configuration>
+						<scalaVersion>${scala.version}</scalaVersion>
+						<aggregate>true</aggregate>
+						<highlighting>true</highlighting>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+	</build>
+</project>
