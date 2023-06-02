@@ -11,6 +11,7 @@ class TestDatasetRegistrySpec extends BaseSpecWithDatasetRegistry with Matchers 
     val d1Opt = DatasetRegistry.getDataset("d1")
     d1Opt should not be (None)
     d1Opt.get.id should be ("d1")
+    d1Opt.get.dataVersion.get should be (2)
 
     val d2Opt = DatasetRegistry.getDataset("d2")
     d2Opt should not be (None)
