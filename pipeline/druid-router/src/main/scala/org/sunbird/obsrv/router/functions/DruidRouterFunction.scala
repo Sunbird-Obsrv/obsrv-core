@@ -45,6 +45,6 @@ class DruidRouterFunction(config: DruidRouterConfig) extends BaseProcessFunction
     metrics.incCounter(datasetId, config.routerSuccessCount)
 
     msg.remove(config.CONST_EVENT)
-    ctx.output(config.statsOutputTag, markComplete(msg))
+    ctx.output(config.statsOutputTag, markComplete(msg, dataset.dataVersion))
   }
 }
