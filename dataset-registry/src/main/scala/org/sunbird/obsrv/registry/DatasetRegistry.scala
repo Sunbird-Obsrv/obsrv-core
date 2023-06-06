@@ -3,6 +3,8 @@ package org.sunbird.obsrv.registry
 import org.sunbird.obsrv.model.DatasetModels.{DataSource, Dataset, DatasetSourceConfig, DatasetTransformation}
 import org.sunbird.obsrv.service.DatasetRegistryService
 
+import java.sql.Timestamp
+
 object DatasetRegistry {
 
   private val datasets: Map[String, Dataset] = DatasetRegistryService.readAllDatasets()
@@ -22,6 +24,10 @@ object DatasetRegistry {
     datasetSourceConfig
   }
 
+  def getDatasetSourceConfigById(datasetId: String): DatasetSourceConfig = {
+    datasetSourceConfig.map(configList => configList.filter(_.datasetId.equalsIgnoreCase(datasetId))).get.head
+  }
+
   def getDatasetTransformations(id: String): Option[List[DatasetTransformation]] = {
     datasetTransformations.get(id)
   }
@@ -36,6 +42,18 @@ object DatasetRegistry {
 
   def updateDatasourceRef(datasource: DataSource, datasourceRef: String): Unit = {
     DatasetRegistryService.updateDatasourceRef(datasource, datasourceRef)
+  }
+
+  def updateConnectorStats(datasetId: String, lastFetchTimestamp: Timestamp, records: Long): Unit = {
+    DatasetRegistryService.updateConnectorStats(datasetId, lastFetchTimestamp, records)
+  }
+
+  def updateConnectorDisconnections(datasetId: String, disconnections: Int): Unit = {
+    DatasetRegistryService.updateConnectorDisconnections(datasetId, disconnections)
+  }
+
+  def updateConnectorAvgBatchReadTime(datasetId: String, avgReadTime: Long): Unit = {
+    DatasetRegistryService.updateConnectorAvgBatchReadTime(datasetId, avgReadTime)
   }
 
 }

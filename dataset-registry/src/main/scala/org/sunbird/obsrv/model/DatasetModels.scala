@@ -48,10 +48,16 @@ object DatasetModels {
                                    @JsonProperty("field_key") fieldKey: String, @JsonProperty("transformation_function") transformationFunction: TransformationFunction,
                                    @JsonProperty("status") status: String)
 
-  case class ConnectorConfig(@JsonProperty("kafkaBrokers") kafkaBrokers: String, @JsonProperty("topic") topic: String)
+  case class ConnectorConfig(@JsonProperty("kafkaBrokers") kafkaBrokers: String, @JsonProperty("topic") topic: String, @JsonProperty("jdbc_user") jdbcUser: String,
+                             @JsonProperty("jdbc_password") jdbcPassword: String, @JsonProperty("jdbc_host") jdbcHost: String, @JsonProperty("jdbc_port") jdbcPort: Int,
+                             @JsonProperty("jdbc_database") jdbcDatabase: String, @JsonProperty("jdbc_database_table") jdbcDatabaseTable: String, @JsonProperty("jdbc_batch_size") jdbcBatchSize: Int,
+                             @JsonProperty("jdbc_batches_per_minute") jdbcBatchesPerMinute: Int, @JsonProperty("jdbc_database_type") jdbcDatabaseType: String)
+
+  case class ConnectorStats(@JsonProperty("last_fetch_timestamp") lastFetchTimestamp: String, @JsonProperty("records") records: Long, @JsonProperty("avg_batch_read_time") avgBatchReadTime: Long, @JsonProperty("disconnections") disconnections: Int)
+
   case class DatasetSourceConfig(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
                                  @JsonProperty("connector_type") connectorType: String, @JsonProperty("connector_config") connectorConfig: ConnectorConfig,
-                                 @JsonProperty("status") status: String)
+                                 @JsonProperty("connector_stats") connectorStats: ConnectorStats, @JsonProperty("status") status: String)
   case class DataSource(@JsonProperty("datasource") datasource: String, @JsonProperty("dataset_id") datasetId: String,
                         @JsonProperty("ingestion_spec") ingestionSpec: String, @JsonProperty("datasource_ref") datasourceRef: String)
 
