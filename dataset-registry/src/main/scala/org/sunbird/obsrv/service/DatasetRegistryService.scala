@@ -127,7 +127,9 @@ object DatasetRegistryService {
     val routerConfig = rs.getString("router_config")
     val datasetConfig = rs.getString("dataset_config")
     val status = rs.getString("status")
-    val tags = rs.getArray("tags").getArray.asInstanceOf[Array[String]]
+    val tagArray = rs.getArray("tags")
+    val tags = if(tagArray != null) tagArray.getArray.asInstanceOf[Array[String]] else null
+    val dataVersion = rs.getInt("data_version")
 
     Dataset(datasetId, datasetType,
       if (extractionConfig == null) None else Some(JSONUtil.deserialize[ExtractionConfig](extractionConfig)),
@@ -138,7 +140,8 @@ object DatasetRegistryService {
       JSONUtil.deserialize[RouterConfig](routerConfig),
       JSONUtil.deserialize[DatasetConfig](datasetConfig),
       status,
-      Option(tags)
+      Option(tags),
+      Option(dataVersion)
     )
   }
 

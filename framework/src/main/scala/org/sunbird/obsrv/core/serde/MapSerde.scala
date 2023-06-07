@@ -28,6 +28,7 @@ class MapDeserializationSchema extends KafkaRecordDeserializationSchema[mutable.
     if (!msg.contains("obsrv_meta")) {
       msg.put("obsrv_meta", Map(
         "syncts" -> record.timestamp(),
+        "processingStartTime" -> System.currentTimeMillis(),
         "flags" -> Map(),
         "timespans" -> Map(),
         "error" -> Map()

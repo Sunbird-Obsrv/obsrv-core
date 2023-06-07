@@ -28,7 +28,7 @@ class TestMapStreamFunc(config: BaseProcessTestMapConfig)(implicit val stringTyp
     super.markSuccess(event, "test-job")
     super.markFailed(event, ErrorConstants.NO_IMPLEMENTATION_FOUND, config.jobName)
     super.markSkipped(event, config.jobName)
-    super.markComplete(event)
+    super.markComplete(event, None)
     assert(super.containsEvent(event))
     assert(!super.containsEvent(Map("dataset" -> "d1")))
 

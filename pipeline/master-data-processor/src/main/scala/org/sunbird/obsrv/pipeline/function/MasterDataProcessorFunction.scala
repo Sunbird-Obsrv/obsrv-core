@@ -66,7 +66,7 @@ class MasterDataProcessorFunction(config: MasterDataProcessorConfig) extends Win
 
     eventsList.foreach(event => {
       event.remove(config.CONST_EVENT)
-      context.output(config.successTag(), markComplete(event))
+      context.output(config.successTag(), markComplete(event, dataset.dataVersion))
     })
   }
 }

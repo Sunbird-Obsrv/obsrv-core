@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS datasets (
     dedup_config json,
     data_schema json,
     denorm_config json,
+    tags text[],
+    data_version INT,
     router_config json NOT NULL,
     dataset_config json NOT NULL,
     status text NOT NULL,
