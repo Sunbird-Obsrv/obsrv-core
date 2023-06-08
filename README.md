@@ -10,7 +10,7 @@ Please note that these configurations can be modified as needed to customize the
 
 ### Indices
 
- * [Common config](#common-config)
+ * [Common config](#common-configuration)
  * [Dataset Registry config](#dataset-registry)
  * [Extraction Job config](#extractor-job)
  * [Preprocessor Job config](#preprocessor-job)
@@ -19,10 +19,10 @@ Please note that these configurations can be modified as needed to customize the
  * [Router Job config](#router-job)
  * [Kafka Connector Job config](#kafka-connector-job)
 
-## Common Config
+## Common Configuration
 
-| Configuration                                      | Description                                                                      |Data Type| Default Value                 |
-|----------------------------------------------------|-------|----------------------------------------------------------------------------------|-------------------------------|
+| Configuration                          |Description                                                                  |Data Type| Default Value                 |
+|--------------------------------------------|-------|---------------------------------------------------------------------|-------------------------------|
 | kafka.consumer.broker-servers                      | Kafka broker servers for the consumer | string                                            | localhost:9092                |
 | kafka.producer.broker-servers                      | Kafka broker servers for the producer| string                                             | localhost:9092                |
 | kafka.producer.max-request-size                    | Maximum request size for the Kafka producer in bytes  | number                            | 1572864                       |
@@ -55,8 +55,6 @@ Please note that these configurations can be modified as needed to customize the
 | postgres.user                                      | PostgreSQL username | string                                                             | postgres                      |
 | postgres.password                                  | PostgreSQL password  |string                                                            | postgres                      |
 | postgres.database                                  | Name of the PostgreSQL database   |string                                                | postgres                      |
-| lms-cassandra.host                                 | Hostname or IP address of the Cassandra server|string                                   | localhost                     |
-| lms-cassandra.port                                 | Port number of the Cassandra server|number                                               | 9042                          |
 
  
 ## Dataset Registry
@@ -141,7 +139,7 @@ Please note that these configurations can be modified as needed to customize the
 
 | Configuration                      | Description                                        |Data type| Default Value                  |
 |------------------------------------|----------------------------------------------------|----|--------------------------------|
-| kafka.input.topic                  | Input Kafka topic                                  |string| local.test                     |
+| kafka.input.topic                  | Input Kafka topic                                  |string| local.input                     |
 | kafka.output.failed.topic          | Output Kafka topic for failed data                 |string| local.failed                   |
 | kafka.event.max.size               | Maximum size of events in bytes                    |number| 1048576 (1MB)                  |
 | kafka.groupId                      | Kafka consumer group ID                            |string| local-kafkaconnector-group     |
