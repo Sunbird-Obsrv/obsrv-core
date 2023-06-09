@@ -15,7 +15,6 @@ Please note that these configurations can be modified as needed to customize the
  * [Extraction Job config](#extractor-job)
  * [Preprocessor Job config](#preprocessor-job)
  * [Denorm Job config](#denormalizer-job)
- * [Transformer Job config](#transformer-job)
  * [Router Job config](#router-job)
  * [Kafka Connector Job config](#kafka-connector-job)
 
@@ -113,17 +112,6 @@ Please note that these configurations can be modified as needed to customize the
 | task.window.shards                 | determines the number of parallel shards (instances) used for processing windows. It enables parallel processing of windows for improved scalability and performance.       |number| 1400                   |
 | task.consumer.parallelism          | Parallelism for task consumers                        |number| 1                      |
 | task.downstream.operators.parallelism | Parallelism for downstream operators               |number| 1                      |
-
-## Transformer Job
-
-| Configuration                | Description                                |Data type| Default Value              |
-|------------------------------|--------------------------------------------|----|----------------------------|
-| kafka.input.topic            | Input Kafka topic                          |string| local.denorm               |
-| kafka.output.transform.topic | Output Kafka topic for transformed data     |string| local.transform             |
-| kafka.groupId                | Kafka consumer group ID                    |string| local-transformer-group |
-| kafka.producer.max-request-size | Maximum request size for Kafka producer   |number| 5242880                  |
-| task.consumer.parallelism    | Parallelism for task consumers            |number | 1                          |
-| task.downstream.operators.parallelism | Parallelism for downstream operators |number| 1                          |
 
 ## Router Job
  
