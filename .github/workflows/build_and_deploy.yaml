@@ -24,22 +24,22 @@ jobs:
     strategy:
       matrix:
        include:
-        #  - image: "extractor"
-        #    target: "extractor-image"
-        #  - image: "preprocessor"
-        #    target: "preprocessor-image"
-        #  - image: "denormalizer"
-        #    target: "denormalizer-image"
-        #  - image: "transformer"
-        #    target: "transformer-image"
-        #  - image: "druid-router"
-        #    target: "router-image"
+         - image: "extractor"
+           target: "extractor-image"
+         - image: "preprocessor"
+           target: "preprocessor-image"
+         - image: "denormalizer"
+           target: "denormalizer-image"
+         - image: "transformer"
+           target: "transformer-image"
+         - image: "druid-router"
+           target: "router-image"
          - image: "merged-pipeline"
            target: "merged-image"
          - image: "master-data-processor"
            target: "master-data-processor-image"
-        #  - image: "kafka-connector"
-        #    target: "kafka-connector-image"
+         - image: "kafka-connector"
+           target: "kafka-connector-image"
 
 
     steps:
