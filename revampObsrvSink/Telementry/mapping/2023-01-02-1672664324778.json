@@ -1,0 +1,93 @@
+{
+  "mappings": {
+    "properties": {
+      "eid": {
+        "type": "keyword"
+      },
+      "ets": {
+        "type": "date"
+      },
+      "ver": {
+        "type": "keyword"
+      },
+      "mid": {
+        "type": "keyword"
+      },
+      "actor": {
+        "properties": {
+          "id": {
+            "type": "keyword"
+          },
+          "type": {
+            "type": "keyword"
+          }
+        }
+      },
+      "context": {
+        "properties": {
+          "channel": {
+            "type": "keyword"
+          },
+          "pdata": {
+            "properties": {
+              "id": {
+                "type": "keyword"
+              },
+              "pid": {
+                "type": "keyword"
+              },
+              "ver": {
+                "type": "keyword"
+              }
+            }
+          },
+          "env": {
+            "type": "keyword"
+          }
+        }
+      },
+      "edata": {
+        "properties": {
+          "level": {
+            "type": "keyword"
+          },
+          "type": {
+            "type": "keyword"
+          },
+          "message": {
+            "type": "text"
+          },
+          "params": {
+            "type": "nested",
+            "properties": {
+              "duration": {
+                "type": "integer"
+              },
+              "protocol": {
+                "type": "keyword"
+              },
+              "size": {
+                "type": "integer"
+              },
+              "method": {
+                "type": "keyword"
+              },
+              "uip": {
+                "type": "ip"
+              },
+              "url": {
+                "type": "keyword"
+              },
+              "status": {
+                "type": "integer"
+              }
+            }
+          }
+        }
+      },
+      "syncts": {
+        "type": "date"
+      }
+    }
+  }
+}
