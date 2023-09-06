@@ -16,6 +16,7 @@ document_data = {
     }
 }
 
+# Have used a sample data as document_data
 # Ingest data into Elasticsearch using the Index API
 # not using request.get to receive as I didnt found need to do so 
 try:
