@@ -10,6 +10,8 @@ import org.sunbird.obsrv.pipeline.util.MasterDataCache
 import org.sunbird.obsrv.registry.DatasetRegistry
 import org.json4s._
 import org.json4s.native.JsonMethods._
+import org.sunbird.obsrv.core.model.ErrorConstants
+import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.util.JSONUtil
 
 import java.lang
@@ -54,7 +56,7 @@ class MasterDataProcessorFunction(config: MasterDataProcessorConfig) extends Win
       val key = json.customExtract[String](dataset.datasetConfig.key)
       if (key == null) {
         metrics.incCounter(datasetId, config.failedCount)
-        context.output(config.failedEventsTag, msg)
+        context.output(config.failedEventsTag, markEventFailed(datasetId, msg, ErrorConstants.MISSING_DATASET_CONFIG_KEY, msg(config.CONST_OBSRV_META).asInstanceOf[Map[String, AnyRef]]))
       }
       (key, json)
     }).toMap
@@ -68,5 +70,23 @@ class MasterDataProcessorFunction(config: MasterDataProcessorConfig) extends Win
       event.remove(config.CONST_EVENT)
       context.output(config.successTag(), markComplete(event, dataset.dataVersion))
     })
+  }
+
+  /**
+   * Method Mark the event as failure by adding (ex_processed -> false) and metadata.
+   */
+  private def markEventFailed(dataset: String, event: mutable.Map[String, AnyRef], error: Error, obsrvMeta: Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+    val wrapperEvent = createWrapperEvent(dataset, event)
+    updateEvent(wrapperEvent, obsrvMeta)
+    super.markFailed(wrapperEvent, error, config.jobName)
+    wrapperEvent
+  }
+
+  private def createWrapperEvent(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
+    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> JSONUtil.serialize(event.toMap))
+  }
+
+  private def updateEvent(event: mutable.Map[String, AnyRef], obsrvMeta: Map[String, AnyRef]) = {
+    event.put(config.CONST_OBSRV_META, obsrvMeta)
   }
 }

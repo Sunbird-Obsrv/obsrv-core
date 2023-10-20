@@ -13,11 +13,14 @@ import org.sunbird.obsrv.core.util.{JSONUtil, Util}
 import org.sunbird.obsrv.extractor.task.ExtractorConfig
 import org.sunbird.obsrv.model.DatasetModels.Dataset
 import org.sunbird.obsrv.registry.DatasetRegistry
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 
 class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: DedupEngine = null)
   extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
+
+  private[this] val logger = LoggerFactory.getLogger(classOf[ExtractionFunction])
 
   override def getMetricsList(): MetricsList = {
     val metrics = List(config.successEventCount, config.systemEventCount, config.failedEventCount, config.failedExtractionCount,
@@ -168,7 +171,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
 
 
   private def createWrapperEvent(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> event.toMap)
+    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> JSONUtil.serialize(event.toMap))
   }
 }
 

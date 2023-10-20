@@ -9,7 +9,7 @@ import org.apache.flink.util.Collector
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.model.SystemConfig
-import org.sunbird.obsrv.core.util.Util
+import org.sunbird.obsrv.core.util.{JSONUtil, Util}
 
 import java.lang
 import java.util.concurrent.ConcurrentHashMap
@@ -85,6 +85,10 @@ trait BaseFunction {
     addFlags(obsrvMeta, Map(jobName -> "failed"))
     addTimespan(obsrvMeta, jobName)
     event.put("obsrv_meta", obsrvMeta.toMap)
+    if (event.contains("events")) {
+      event.put("event", JSONUtil.serialize(event.get("events")))
+      event.remove("events")
+    }
     event
   }
 
