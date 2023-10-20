@@ -28,5 +28,6 @@ object ErrorConstants extends Enumeration {
 
   val DENORM_KEY_MISSING = ErrorInternalValue("ERR_DENORM_1014", "No denorm key found or missing data for the specified key")
   val DENORM_KEY_NOT_A_STRING = ErrorInternalValue("ERR_DENORM_1015", "Denorm key value is not a String or Text")
-  val MISSING_DATASET_CONFIG_KEY = ErrorInternalValue("ERR_EXT_1016", "Dataset configuration key is missing")
+
+  val MISSING_DATASET_CONFIG_KEY = ErrorInternalValue("ERR_MASTER_DATA_1016", "Master dataset configuration key is missing")
 }
