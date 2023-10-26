@@ -40,6 +40,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
     metrics.incCounter(config.defaultDatasetID, config.totalEventCount)
+
     val datasetId = batchEvent.get(config.CONST_DATASET)
     if (datasetId.isEmpty) {
       context.output(config.failedBatchEventOutputTag, markBatchFailed(batchEvent, ErrorConstants.MISSING_DATASET_ID))
@@ -171,7 +172,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
 
 
   private def createWrapperEvent(dataset: String, event: mutable.Map[String, AnyRef]): mutable.Map[String, AnyRef] = {
-    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> JSONUtil.serialize(event.toMap))
+    mutable.Map(config.CONST_DATASET -> dataset, config.CONST_EVENT -> event.toMap)
   }
 }
 

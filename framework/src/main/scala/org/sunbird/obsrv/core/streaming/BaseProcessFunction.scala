@@ -85,10 +85,7 @@ trait BaseFunction {
     addFlags(obsrvMeta, Map(jobName -> "failed"))
     addTimespan(obsrvMeta, jobName)
     event.put("obsrv_meta", obsrvMeta.toMap)
-    if (event.contains("events")) {
-      event.put("event", JSONUtil.serialize(event.get("events")))
-      event.remove("events")
-    }
+    event.put("event", JSONUtil.serialize(event))
     event
   }
 
