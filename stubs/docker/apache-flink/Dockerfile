@@ -19,6 +19,9 @@
 
 FROM --platform=linux/x86_64 eclipse-temurin:11.0.20.1_1-jdk-focal
 
+RUN apt-get update
+RUN apt-get install libcurl4 curl -y
+
 # Install dependencies
 RUN set -ex; \
   apt-get update; \
