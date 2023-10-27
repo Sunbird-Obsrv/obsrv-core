@@ -59,7 +59,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
       return
     }
     val dataset = datasetOpt.get
-    if (dataset.extractionConfig.isDefined && dataset.extractionConfig.get.isBatchEvent.get) {
+    if (!containsEvent(batchEvent) && dataset.extractionConfig.isDefined && dataset.extractionConfig.get.isBatchEvent.get) {
       val eventAsText = JSONUtil.serialize(batchEvent)
       if (dataset.extractionConfig.get.dedupConfig.isDefined && dataset.extractionConfig.get.dedupConfig.get.dropDuplicates.get) {
         val isDup = isDuplicate(dataset.id, dataset.extractionConfig.get.dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
