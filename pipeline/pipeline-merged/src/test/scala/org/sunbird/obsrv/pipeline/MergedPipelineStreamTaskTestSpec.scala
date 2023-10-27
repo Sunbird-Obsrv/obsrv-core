@@ -90,7 +90,7 @@ class MergedPipelineStreamTaskTestSpec extends BaseSpecWithDatasetRegistry {
     val stats = EmbeddedKafka.consumeNumberMessagesFrom[String](mergedPipelineConfig.kafkaStatsTopic, 1, timeout = 20.seconds)
     stats.foreach(Console.println("Stats Event:", _))
 
-    val failed = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.output.denorm.failed.topic"), 1, timeout = 20.seconds)
+    val failed = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.output.failed.topic"), 1, timeout = 20.seconds)
     failed.foreach(Console.println("Failed Event:", _))
 
     val mutableMetricsMap = mutable.Map[String, Long]();

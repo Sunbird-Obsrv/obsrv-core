@@ -40,7 +40,12 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
     metrics.incCounter(config.defaultDatasetID, config.totalEventCount)
-
+    if(batchEvent.contains("invalidEvent")) {
+      batchEvent.remove("invalidEvent")
+      context.output(config.failedEventsOutputTag, markBatchFailed(batchEvent, ErrorConstants.ERE_INVALID_EVENT))
+      metrics.incCounter(config.defaultDatasetID, config.failedEventCount)
+      return
+    }
     val datasetId = batchEvent.get(config.CONST_DATASET)
     if (datasetId.isEmpty) {
       context.output(config.failedBatchEventOutputTag, markBatchFailed(batchEvent, ErrorConstants.MISSING_DATASET_ID))

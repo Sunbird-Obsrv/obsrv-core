@@ -19,9 +19,17 @@ class MapDeserializationSchema extends KafkaRecordDeserializationSchema[mutable.
   override def getProducedType: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]], out: Collector[mutable.Map[String, AnyRef]]): Unit = {
-    val msg = JSONUtil.deserialize[mutable.Map[String, AnyRef]](record.value())
-    initObsrvMeta(msg, record)
-    out.collect(msg)
+    try {
+      val msg = JSONUtil.deserialize[mutable.Map[String, AnyRef]](record.value())
+      initObsrvMeta(msg, record)
+      out.collect(msg)
+    } catch {
+      case ex: Exception =>
+        ex.printStackTrace()
+        val invalidEvent = mutable.Map[String, AnyRef]("invalidEvent" -> true.asInstanceOf[AnyRef], "event"-> new String(record.value, "UTF-8"))
+        initObsrvMeta(invalidEvent, record)
+        out.collect(invalidEvent)
+    }
   }
 
   private def initObsrvMeta(msg: mutable.Map[String, AnyRef], record: ConsumerRecord[Array[Byte], Array[Byte]]): Unit = {
