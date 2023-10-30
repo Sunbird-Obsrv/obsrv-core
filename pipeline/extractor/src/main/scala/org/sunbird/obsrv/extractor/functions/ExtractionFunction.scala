@@ -4,7 +4,7 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.sunbird.obsrv.core.cache.{DedupEngine, RedisConnect}
 import org.sunbird.obsrv.core.exception.ObsrvException
-import org.sunbird.obsrv.core.model.ErrorConstants
+import org.sunbird.obsrv.core.model.{Constants, ErrorConstants}
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.model.Models.{PData, SystemEvent}
 import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
@@ -40,8 +40,8 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
     metrics.incCounter(config.defaultDatasetID, config.totalEventCount)
-    if(batchEvent.contains("invalidEvent")) {
-      batchEvent.remove("invalidEvent")
+    if(batchEvent.contains(Constants.INVALID_EVENT)) {
+      batchEvent.remove(Constants.INVALID_EVENT)
       context.output(config.failedEventsOutputTag, markBatchFailed(batchEvent, ErrorConstants.ERE_INVALID_EVENT, ""))
       metrics.incCounter(config.defaultDatasetID, config.failedEventCount)
       return
@@ -163,7 +163,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
 
   private def markBatchFailed(batchEvent: mutable.Map[String, AnyRef], error: Error, extractionKey: String): mutable.Map[String, AnyRef] = {
     if (!extractionKey.isEmpty) {
-      batchEvent.put("event", batchEvent.get(extractionKey))
+      batchEvent.put(Constants.EVENT, batchEvent.get(extractionKey))
       batchEvent.remove(extractionKey)
     }
     super.markFailed(batchEvent, error, config.jobName)
