@@ -16,7 +16,7 @@ object ErrorConstants extends Enumeration {
   val EVENT_MISSING = ErrorInternalValue("ERR_EXT_1006", "Event missing in the batch event")
   val MISSING_DATASET_ID = ErrorInternalValue("ERR_EXT_1004", "Dataset Id is missing from the data")
   val MISSING_DATASET_CONFIGURATION = ErrorInternalValue("ERR_EXT_1005", "Dataset configuration is missing")
-  val ERE_INVALID_EVENT =  ErrorInternalValue("ERR_EXT_1017", "Invalid JSON event, error while deserializing the event")
+  val ERR_INVALID_EVENT =  ErrorInternalValue("ERR_EXT_1017", "Invalid JSON event, error while deserializing the event")
 
   val NO_DEDUP_KEY_FOUND = ErrorInternalValue("ERR_DEDUP_1007", "No dedup key found or missing data")
   val DEDUP_KEY_NOT_A_STRING = ErrorInternalValue("ERR_DEDUP_1008", "Dedup key value is not a String or Text")
