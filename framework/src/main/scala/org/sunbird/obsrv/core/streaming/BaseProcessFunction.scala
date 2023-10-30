@@ -1,5 +1,6 @@
 package org.sunbird.obsrv.core.streaming
 
+import org.apache.commons.lang3.StringUtils
 import org.apache.flink.api.scala.metrics.ScalaGauge
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
@@ -92,7 +93,7 @@ trait BaseFunction {
 
   def markFailed(event: mutable.Map[String, AnyRef], error: Error, jobName: String, extractionKey: String): mutable.Map[String, AnyRef] = {
     val failedEvent = markFailed(event, error, jobName)
-    if (extractionKey.nonEmpty)
+    if (extractionKey.nonEmpty && StringUtils.equals(extractionKey, Constants.EVENT))
       failedEvent.remove(extractionKey)
     failedEvent
   }
