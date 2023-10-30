@@ -91,13 +91,6 @@ trait BaseFunction {
     event
   }
 
-  def markFailed(event: mutable.Map[String, AnyRef], error: Error, jobName: String, extractionKey: String): mutable.Map[String, AnyRef] = {
-    val failedEvent = markFailed(event, error, jobName)
-    if (extractionKey.nonEmpty && StringUtils.equals(extractionKey, Constants.EVENT))
-      failedEvent.remove(extractionKey)
-    failedEvent
-  }
-
   def markSkipped(event: mutable.Map[String, AnyRef], jobName: String): mutable.Map[String, AnyRef] = {
     val obsrvMeta = Util.getMutableMap(event("obsrv_meta").asInstanceOf[Map[String, AnyRef]])
     addFlags(obsrvMeta, Map(jobName -> "skipped"))

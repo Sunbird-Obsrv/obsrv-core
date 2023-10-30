@@ -164,7 +164,9 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
   }
 
   private def markBatchFailed(batchEvent: mutable.Map[String, AnyRef], error: Error, extractionKey: String): mutable.Map[String, AnyRef] = {
-    super.markFailed(batchEvent, error, config.jobName, extractionKey)
+    super.markFailed(batchEvent, error, config.jobName)
+    if (extractionKey.nonEmpty && StringUtils.equals(extractionKey, Constants.EVENT))
+      batchEvent.remove(extractionKey)
     batchEvent
   }
 
