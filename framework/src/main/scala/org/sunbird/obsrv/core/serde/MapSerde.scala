@@ -1,7 +1,6 @@
 package org.sunbird.obsrv.core.serde
 
 import java.nio.charset.StandardCharsets
-
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.connector.kafka.sink.KafkaRecordSerializationSchema
@@ -9,7 +8,9 @@ import org.apache.flink.connector.kafka.source.reader.deserializer.KafkaRecordDe
 import org.apache.flink.util.Collector
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.sunbird.obsrv.core.model.Constants
 import org.sunbird.obsrv.core.util.JSONUtil
+
 import scala.collection.mutable
 
 
@@ -26,7 +27,7 @@ class MapDeserializationSchema extends KafkaRecordDeserializationSchema[mutable.
     } catch {
       case ex: Exception =>
         ex.printStackTrace()
-        val invalidEvent = mutable.Map[String, AnyRef]("invalidEvent" -> true.asInstanceOf[AnyRef], "event"-> new String(record.value, "UTF-8"))
+        val invalidEvent = mutable.Map[String, AnyRef](Constants.INVALID_EVENT -> true.asInstanceOf[AnyRef], Constants.EVENT -> new String(record.value, "UTF-8"))
         initObsrvMeta(invalidEvent, record)
         out.collect(invalidEvent)
     }
