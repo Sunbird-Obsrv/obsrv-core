@@ -164,12 +164,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
   }
 
   private def markBatchFailed(batchEvent: mutable.Map[String, AnyRef], error: Error, extractionKey: String): mutable.Map[String, AnyRef] = {
-    if (extractionKey.nonEmpty) {
-      val eventData = batchEvent.get(extractionKey)
-      batchEvent.remove(extractionKey)
-      batchEvent.put(Constants.EVENT, eventData)
-    }
-    super.markFailed(batchEvent, error, config.jobName)
+    super.markFailed(batchEvent, error, config.jobName, extractionKey)
     batchEvent
   }
 
