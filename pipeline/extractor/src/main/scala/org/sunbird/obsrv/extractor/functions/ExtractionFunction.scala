@@ -41,8 +41,8 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
     metrics.incCounter(config.defaultDatasetID, config.totalEventCount)
-    val obsrvMeta = batchEvent.clone()(Constants.OBSRV_META).asInstanceOf[mutable.Map[String, AnyRef]]
-    val errorCode = obsrvMeta(Constants.ERROR).asInstanceOf[Map[String, AnyRef]].getOrElse(Constants.ERROR_CODE, "").asInstanceOf[String]
+    val obsrvMeta = batchEvent.getOrElse(Constants.OBSRV_META, Map()).asInstanceOf[mutable.Map[String, AnyRef]]
+    val errorCode = obsrvMeta.getOrElse(Constants.ERROR, Map()).asInstanceOf[Map[String, AnyRef]].getOrElse(Constants.ERROR_CODE, "").asInstanceOf[String]
     if (StringUtils.equals(errorCode, ErrorConstants.ERR_INVALID_EVENT.errorCode)) {
       context.output(config.failedEventsOutputTag, markBatchFailed(batchEvent, ErrorConstants.ERR_INVALID_EVENT, ""))
       metrics.incCounter(config.defaultDatasetID, config.failedEventCount)
