@@ -41,9 +41,8 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
     metrics.incCounter(config.defaultDatasetID, config.totalEventCount)
-    val obsrvMeta = batchEvent.getOrElse(Constants.OBSRV_META, Map()).asInstanceOf[mutable.Map[String, AnyRef]]
-    val errorCode = obsrvMeta.getOrElse(Constants.ERROR, Map()).asInstanceOf[Map[String, AnyRef]].getOrElse(Constants.ERROR_CODE, "").asInstanceOf[String]
-    if (StringUtils.equals(errorCode, ErrorConstants.ERR_INVALID_EVENT.errorCode)) {
+    val eventAsText = JSONUtil.serialize(batchEvent)
+    if (eventAsText.contains(ErrorConstants.ERR_INVALID_EVENT.errorCode)) {
       context.output(config.failedEventsOutputTag, markBatchFailed(batchEvent, ErrorConstants.ERR_INVALID_EVENT, ""))
       metrics.incCounter(config.defaultDatasetID, config.failedEventCount)
       return
@@ -61,15 +60,12 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
       return
     }
     val dataset = datasetOpt.get
-    validateExtractionConfig(dataset, JSONUtil.serialize(batchEvent))
-    val extractionKey = dataset.extractionConfig.get.extractionKey.get
     if (!containsEvent(batchEvent) && dataset.extractionConfig.isDefined && dataset.extractionConfig.get.isBatchEvent.get) {
-      val eventAsText = JSONUtil.serialize(batchEvent)
       if (dataset.extractionConfig.get.dedupConfig.isDefined && dataset.extractionConfig.get.dedupConfig.get.dropDuplicates.get) {
         val isDup = isDuplicate(dataset.id, dataset.extractionConfig.get.dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
         if (isDup) {
           metrics.incCounter(dataset.id, config.duplicateExtractionCount)
-          context.output(config.duplicateEventOutputTag, markBatchFailed(batchEvent, ErrorConstants.DUPLICATE_BATCH_EVENT_FOUND, extractionKey))
+          context.output(config.duplicateEventOutputTag, markBatchFailed(batchEvent, ErrorConstants.DUPLICATE_BATCH_EVENT_FOUND, dataset.extractionConfig.get.extractionKey.get))
           return
         }
       }
@@ -130,15 +126,12 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
 
   private def getEventsList(dataset: Dataset, eventAsText: String): List[Map[String, AnyRef]] = {
     val node = JSONUtil.getKey(dataset.extractionConfig.get.extractionKey.get, eventAsText)
-    JSONUtil.deserialize[List[Map[String, AnyRef]]](node.toString); // TODO: Check if this is the better way to get JsonNode data
-  }
-
-  private def validateExtractionConfig(dataset: Dataset, eventAsText: String): Unit = {
-    val node = JSONUtil.getKey(dataset.extractionConfig.get.extractionKey.get, eventAsText)
     if (node.isMissingNode) {
       throw new ObsrvException(ErrorConstants.NO_EXTRACTION_DATA_FOUND)
     } else if (!node.isArray) {
       throw new ObsrvException(ErrorConstants.EXTRACTED_DATA_NOT_A_LIST)
+    } else {
+      JSONUtil.deserialize[List[Map[String, AnyRef]]](node.toString); // TODO: Check if this is the better way to get JsonNode data
     }
   }
 

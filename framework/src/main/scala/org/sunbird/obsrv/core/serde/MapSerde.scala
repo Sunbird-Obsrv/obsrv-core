@@ -53,7 +53,7 @@ class MapDeserializationSchema extends KafkaRecordDeserializationSchema[mutable.
   private def addError(event:mutable.Map[String, AnyRef], error: ErrorConstants.ErrorValue): Unit ={
     val obsrvMeta = Util.getMutableMap(event(Constants.OBSRV_META).asInstanceOf[Map[String, AnyRef]])
     obsrvMeta.put(Constants.ERROR, Map(Constants.ERROR_CODE -> error.errorCode))
-    event.put(Constants.OBSRV_META, obsrvMeta)
+    event.put(Constants.OBSRV_META, obsrvMeta.toMap)
   }
 }
 

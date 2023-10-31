@@ -1,6 +1,5 @@
 package org.sunbird.obsrv.core.streaming
 
-import org.apache.commons.lang3.StringUtils
 import org.apache.flink.api.scala.metrics.ScalaGauge
 import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
