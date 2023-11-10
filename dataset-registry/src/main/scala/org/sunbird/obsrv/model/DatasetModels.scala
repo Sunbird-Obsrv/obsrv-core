@@ -48,10 +48,16 @@ object DatasetModels {
                                    @JsonProperty("field_key") fieldKey: String, @JsonProperty("transformation_function") transformationFunction: TransformationFunction,
                                    @JsonProperty("status") status: String)
 
-  case class ConnectorConfig(@JsonProperty("kafkaBrokers") kafkaBrokers: String, @JsonProperty("topic") topic: String, @JsonProperty("jdbc_user") jdbcUser: String,
-                             @JsonProperty("jdbc_password") jdbcPassword: String, @JsonProperty("jdbc_host") jdbcHost: String, @JsonProperty("jdbc_port") jdbcPort: Int,
-                             @JsonProperty("jdbc_database") jdbcDatabase: String, @JsonProperty("jdbc_database_table") jdbcDatabaseTable: String, @JsonProperty("jdbc_batch_size") jdbcBatchSize: Int,
-                             @JsonProperty("jdbc_batches_per_minute") jdbcBatchesPerMinute: Int, @JsonProperty("jdbc_database_type") jdbcDatabaseType: String)
+  case class ConnectorConfig(@JsonProperty("kafkaBrokers") kafkaBrokers: String, @JsonProperty("topic") topic: String,  @JsonProperty("type")databaseType: String,
+                             @JsonProperty("connection") connection: Connection, @JsonProperty("tableName") tableName: String, @JsonProperty("databaseName") databaseName: String,
+                             @JsonProperty("pollingInterval") pollingInterval: PollingInterval, @JsonProperty("authenticationMechanism") authenticationMechanism: AuthenticationMechanism,
+                             @JsonProperty("batchSize") batchSize: Int)
+
+  case class Connection(@JsonProperty("host") host: String, @JsonProperty("port") port: String)
+
+  case class PollingInterval(@JsonProperty("type") pollingType: String, @JsonProperty("cronExpression") cronExpression: String)
+
+  case class AuthenticationMechanism(@JsonProperty("encrypted") encrypted: Boolean, @JsonProperty("encryptedValues") encryptedValues: String)
 
   case class ConnectorStats(@JsonProperty("last_fetch_timestamp") lastFetchTimestamp: String, @JsonProperty("records") records: Long, @JsonProperty("avg_batch_read_time") avgBatchReadTime: Long, @JsonProperty("disconnections") disconnections: Int)
 
