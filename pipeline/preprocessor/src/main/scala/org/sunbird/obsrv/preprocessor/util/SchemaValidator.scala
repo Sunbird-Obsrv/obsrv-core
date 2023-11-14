@@ -41,7 +41,7 @@ class SchemaValidator(config: PipelinePreprocessorConfig) extends java.io.Serial
     } catch {
       case ex: Exception =>
         logger.error("SchemaValidator:loadJsonSchema() - Exception", ex)
-        throw new ObsrvException(ErrorConstants.INVALID_JSON_SCHEMA)
+        throw new ObsrvException(ErrorConstants.INVALID_JSON_SCHEMA.copy(errorReason = ex.getMessage))
     }
   }
 

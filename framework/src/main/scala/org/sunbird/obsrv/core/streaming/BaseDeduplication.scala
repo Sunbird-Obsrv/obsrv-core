@@ -46,7 +46,7 @@ trait BaseDeduplication {
       throw new ObsrvException(ErrorConstants.NO_DEDUP_KEY_FOUND)
     }
     if (!node.isTextual) {
-      throw new ObsrvException(ErrorConstants.DEDUP_KEY_NOT_A_STRING)
+      throw new ObsrvException(ErrorConstants.DEDUP_KEY_NOT_A_STRING.copy(errorReason = s"Dedup key type is ${node.getNodeType}"))
     }
     node.asText()
   }

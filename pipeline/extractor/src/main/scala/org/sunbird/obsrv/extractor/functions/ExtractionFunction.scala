@@ -88,7 +88,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
     val eventSize = eventJson.getBytes("UTF-8").length
     if (eventSize > config.eventMaxSize) {
       metrics.incCounter(dataset.id, config.failedEventCount)
-      context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED, obsrvMeta))
+      context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED.copy(errorReason = s"Event size is $eventSize"), obsrvMeta))
     } else {
       metrics.incCounter(dataset.id, config.skippedExtractionCount)
       context.output(config.rawEventsOutputTag, markEventSkipped(dataset.id, eventData, obsrvMeta))
@@ -106,7 +106,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
         val eventSize = eventJson.getBytes("UTF-8").length
         if (eventSize > config.eventMaxSize) {
           metrics.incCounter(dataset.id, config.failedEventCount)
-          context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED, obsrvMeta))
+          context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED.copy(errorReason = s"Event size is $eventSize"), obsrvMeta))
         } else {
           metrics.incCounter(dataset.id, config.successEventCount)
           context.output(config.rawEventsOutputTag, markEventSuccess(dataset.id, eventData, obsrvMeta))

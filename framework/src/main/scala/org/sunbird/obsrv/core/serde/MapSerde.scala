@@ -33,7 +33,7 @@ class MapDeserializationSchema extends KafkaRecordDeserializationSchema[mutable.
         val invalidEvent = mutable.Map[String, AnyRef]()
         invalidEvent.put(Constants.EVENT, new String(record.value, "UTF-8"))
         initObsrvMeta(invalidEvent, record)
-        addError(invalidEvent, ErrorConstants.ERR_INVALID_EVENT)
+        addError(invalidEvent, ErrorConstants.ERR_INVALID_EVENT.copy(errorReason = ex.getMessage))
         out.collect(invalidEvent)
     }
   }
