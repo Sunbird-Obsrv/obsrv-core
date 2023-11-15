@@ -51,7 +51,7 @@ object DatasetModels {
   case class ConnectorConfig(@JsonProperty("kafkaBrokers") kafkaBrokers: String, @JsonProperty("topic") topic: String,  @JsonProperty("type")databaseType: String,
                              @JsonProperty("connection") connection: Connection, @JsonProperty("tableName") tableName: String, @JsonProperty("databaseName") databaseName: String,
                              @JsonProperty("pollingInterval") pollingInterval: PollingInterval, @JsonProperty("authenticationMechanism") authenticationMechanism: AuthenticationMechanism,
-                             @JsonProperty("batchSize") batchSize: Int)
+                             @JsonProperty("batchSize") batchSize: Int, @JsonProperty("timestampColumn") timestampColumn: String)
 
   case class Connection(@JsonProperty("host") host: String, @JsonProperty("port") port: String)
 
