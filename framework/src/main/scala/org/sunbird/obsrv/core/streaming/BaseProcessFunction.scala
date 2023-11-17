@@ -71,7 +71,7 @@ trait BaseFunction {
     val prevTS = if (obsrvMeta.contains("prevProcessingTime")) {
       obsrvMeta("prevProcessingTime").asInstanceOf[Long]
     } else {
-      obsrvMeta("syncts").asInstanceOf[Long]
+      obsrvMeta("processingStartTime").asInstanceOf[Long]
     }
     val currentTS = System.currentTimeMillis()
     val span = currentTS - prevTS
@@ -104,11 +104,15 @@ trait BaseFunction {
     event
   }
 
-  def markComplete(event: mutable.Map[String, AnyRef]) : mutable.Map[String, AnyRef] = {
+  def markComplete(event: mutable.Map[String, AnyRef], dataVersion: Option[Int]) : mutable.Map[String, AnyRef] = {
     val obsrvMeta = Util.getMutableMap(event("obsrv_meta").asInstanceOf[Map[String, AnyRef]])
     val syncts = obsrvMeta("syncts").asInstanceOf[Long]
-    val span = System.currentTimeMillis() - syncts
-    obsrvMeta.put("timespans", obsrvMeta("timespans").asInstanceOf[Map[String, AnyRef]] ++ Map("total_processing_time" -> span))
+    val processingStartTime = obsrvMeta("processingStartTime").asInstanceOf[Long]
+    val processingEndTime = System.currentTimeMillis()
+    obsrvMeta.put("total_processing_time", (processingEndTime - syncts).asInstanceOf[AnyRef])
+    obsrvMeta.put("latency_time", (processingStartTime - syncts).asInstanceOf[AnyRef])
+    obsrvMeta.put("processing_time", (processingEndTime - processingStartTime).asInstanceOf[AnyRef])
+    obsrvMeta.put("data_version", dataVersion.getOrElse(1).asInstanceOf[AnyRef])
     event.put("obsrv_meta", obsrvMeta.toMap)
     event
   }

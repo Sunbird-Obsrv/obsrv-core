@@ -72,6 +72,17 @@
             <artifactId>embedded-redis</artifactId>
             <version>0.7.1</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.google.guava</groupId>
+                    <artifactId>guava</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>32.1.2-jre</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>

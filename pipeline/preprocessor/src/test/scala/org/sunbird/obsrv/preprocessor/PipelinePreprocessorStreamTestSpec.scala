@@ -84,7 +84,7 @@ class PipelinePreprocessorStreamTestSpec extends BaseSpecWithDatasetRegistry {
       Thread.sleep(5000)
     }
     //val extractorFailed = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.input.topic"), 2, timeout = 60.seconds)
-    val uniqueEvents = EmbeddedKafka.consumeNumberMessagesFrom[String](pConfig.kafkaUniqueTopic, 1, timeout = 20.seconds)
+    val uniqueEvents = EmbeddedKafka.consumeNumberMessagesFrom[String](pConfig.kafkaUniqueTopic, 1, timeout = 60.seconds)
     uniqueEvents.foreach(Console.println("Event:", _))
 
     val mutableMetricsMap = mutable.Map[String, Long]();

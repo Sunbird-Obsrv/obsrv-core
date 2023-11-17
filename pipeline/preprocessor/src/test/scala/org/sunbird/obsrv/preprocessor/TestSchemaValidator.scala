@@ -1,18 +1,17 @@
 package org.sunbird.obsrv.preprocessor
 
-import com.google.gson.Gson
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import org.scalatest.{FlatSpec, Matchers}
+import org.sunbird.obsrv.core.exception.ObsrvException
 import org.sunbird.obsrv.core.util.JSONUtil
 import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetConfig, RouterConfig}
 import org.sunbird.obsrv.preprocessor.fixture.EventFixtures
 import org.sunbird.obsrv.preprocessor.task.PipelinePreprocessorConfig
 import org.sunbird.obsrv.preprocessor.util.SchemaValidator
-import org.sunbird.obsrv.core.exception.ObsrvException
 
 class TestSchemaValidator extends FlatSpec with Matchers {
 
-  val config = ConfigFactory.load("test.conf");
+  val config: Config = ConfigFactory.load("test.conf")
   val pipelineProcessorConfig = new PipelinePreprocessorConfig(config)
   val schemaValidator = new SchemaValidator(pipelineProcessorConfig)
 
@@ -20,7 +19,6 @@ class TestSchemaValidator extends FlatSpec with Matchers {
 
     val dataset = Dataset("d1", "dataset", None, None, None, Option(EventFixtures.VALID_SCHEMA), None, RouterConfig(""), DatasetConfig("id","date","ingest"), "Active")
     schemaValidator.loadDataSchemas(List(dataset))
-    val gson = new Gson()
 
     val event = JSONUtil.deserialize[Map[String, AnyRef]](EventFixtures.VALID_SCHEMA_EVENT)
     val report = schemaValidator.validate("d1", event)
@@ -46,7 +44,7 @@ class TestSchemaValidator extends FlatSpec with Matchers {
     schemaValidator.loadDataSchemas(List(dataset))
 
     val dataset2 = Dataset("d1", "dataset", None, None, None, None, None, RouterConfig(""), DatasetConfig("id","date","ingest"), "Active")
-    an[ObsrvException] should be thrownBy(schemaValidator.schemaFileExists(dataset2))
+    an[ObsrvException] should be thrownBy schemaValidator.schemaFileExists(dataset2)
     schemaValidator.schemaFileExists(dataset) should be (false)
   }
 
