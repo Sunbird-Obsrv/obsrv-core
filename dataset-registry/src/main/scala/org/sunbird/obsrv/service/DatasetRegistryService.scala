@@ -4,10 +4,10 @@ import com.typesafe.config.{Config, ConfigFactory}
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.streaming.BaseDeduplication
 import org.sunbird.obsrv.core.util.{JSONUtil, PostgresConnect, PostgresConnectionConfig}
-import org.sunbird.obsrv.model.DatasetModels.{ConnectorConfig, DataSource, Dataset, DatasetConfig, DatasetSourceConfig, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
+import org.sunbird.obsrv.model.DatasetModels.{ConnectorConfig, ConnectorStats, DataSource, Dataset, DatasetConfig, DatasetSourceConfig, DatasetTransformation, DedupConfig, DenormConfig, ExtractionConfig, RouterConfig, TransformationFunction, ValidationConfig}
 
 import java.io.File
-import java.sql.ResultSet
+import java.sql.{ResultSet, Timestamp}
 
 object DatasetRegistryService {
 
@@ -102,19 +102,42 @@ object DatasetRegistryService {
   }
 
   def updateDatasourceRef(datasource: DataSource, datasourceRef: String): Unit = {
+    val query = s"UPDATE datasources set datasource_ref = '$datasourceRef' where datasource='${datasource.datasource}' and dataset_id='${datasource.datasetId}'"
+    updateRegistry(query, "Exception while updating data source reference in Postgres")
+  }
+
+  def updateConnectorStats(datasetId: String, lastFetchTimestamp: Timestamp, records: Long): Unit = {
+    val query = s"UPDATE dataset_source_config SET connector_stats = jsonb_set(jsonb_set(connector_stats::jsonb, '{records}'," +
+      s" ((COALESCE(connector_stats->>'records', '0')::int + $records)::text)::jsonb, true), '{last_fetch_timestamp}', " +
+      s"to_jsonb('$lastFetchTimestamp'::timestamp), true) WHERE dataset_id = '$datasetId'"
+    updateRegistry(query, "Exception while updating connector stats in Postgres")
+  }
+
+  def updateConnectorDisconnections(datasetId: String, disconnections: Int): Unit = {
+    val query = s"UPDATE dataset_source_config SET connector_stats = jsonb_set(connector_stats::jsonb, " +
+      s"'{disconnections}','$disconnections') WHERE dataset_id = '$datasetId'"
+    updateRegistry(query, "Exception while updating connector disconnections in Postgres")
+  }
+
+  def updateConnectorAvgBatchReadTime(datasetId: String, avgReadTime: Long): Unit = {
+    val query = s"UPDATE dataset_source_config SET connector_stats = jsonb_set(connector_stats::jsonb, " +
+      s"'{avg_batch_read_time}','$avgReadTime') WHERE dataset_id = '$datasetId'"
+    updateRegistry(query, "Exception while updating connector average batch read time in Postgres")
+  }
+
+  def updateRegistry(query: String, errorMsg: String): Unit = {
     val postgresConnect = new PostgresConnect(postgresConfig)
     try {
       // TODO: Check if the udpate is successful. Else throw an Exception
-      postgresConnect.executeQuery(s"UPDATE datasources set datasource_ref = '$datasourceRef' where datasource='${datasource.datasource}' and dataset_id='${datasource.datasetId}'")
+      postgresConnect.execute(query)
     } catch {
       case ex: Exception =>
-        logger.error("Exception while reading dataset transformations from Postgres", ex)
+        logger.error(errorMsg, ex)
         Map()
     } finally {
       postgresConnect.closeConnection()
     }
   }
-
 
   private def parseDataset(rs: ResultSet): Dataset = {
     val datasetId = rs.getString("id")
@@ -150,10 +173,12 @@ object DatasetRegistryService {
     val datasetId = rs.getString("dataset_id")
     val connectorType = rs.getString("connector_type")
     val connectorConfig = rs.getString("connector_config")
+    val connectorStats = rs.getString("connector_stats")
     val status = rs.getString("status")
 
     DatasetSourceConfig(id = id, datasetId = datasetId, connectorType = connectorType,
       JSONUtil.deserialize[ConnectorConfig](connectorConfig),
+      JSONUtil.deserialize[ConnectorStats](connectorStats),
       status
     )
   }
