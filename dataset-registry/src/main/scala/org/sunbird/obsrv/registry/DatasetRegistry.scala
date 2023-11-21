@@ -12,6 +12,8 @@ object DatasetRegistry {
   private val datasetSourceConfig: Option[List[DatasetSourceConfig]] = DatasetRegistryService.readAllDatasetSourceConfig()
   private val datasources: Map[String, List[DataSource]] = DatasetRegistryService.readAllDatasources()
 
+  def getAllDatasets(): Map[String, Dataset] = datasets
+
   def getAllDatasets(datasetType: String): List[Dataset] = {
     datasets.filter(f => f._2.datasetType.equals(datasetType)).values.toList
   }
