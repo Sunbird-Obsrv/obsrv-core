@@ -89,7 +89,7 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
       }
     } catch {
       case ex: ObsrvException =>
-        logger.error("EventValidationFunction:validateEvent()-Exception", ex.getMessage)
+        logger.error("EventValidationFunction:validateEvent()-Exception: ", ex.getMessage)
         ex.printStackTrace()
         metrics.incCounter(dataset.id, config.validationFailureMetricsCount)
         context.output(config.failedEventsOutputTag, markFailed(msg, ex.error, "EventValidation"))

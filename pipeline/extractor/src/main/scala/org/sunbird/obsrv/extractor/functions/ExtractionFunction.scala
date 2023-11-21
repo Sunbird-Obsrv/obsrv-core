@@ -117,6 +117,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
       metrics.incCounter(dataset.id, config.successExtractionCount)
     } catch {
       case ex: ObsrvException =>
+        ex.printStackTrace()
         context.output(config.failedBatchEventOutputTag, markBatchFailed(batchEvent, ex.error, dataset.extractionConfig.get.extractionKey.get))
         metrics.incCounter(dataset.id, config.failedExtractionCount)
       case re: Exception => re.printStackTrace()
