@@ -5,7 +5,7 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.sunbird.obsrv.core.cache.{DedupEngine, RedisConnect}
 import org.sunbird.obsrv.core.exception.ObsrvException
-import org.sunbird.obsrv.core.model.{Constants, ErrorConstants}
+import org.sunbird.obsrv.core.model.{Constants, ErrorConstants, SystemConfig}
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.model.Models.{PData, SystemEvent}
 import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
@@ -88,7 +88,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
     val eventSize = eventJson.getBytes("UTF-8").length
     if (eventSize > config.eventMaxSize) {
       metrics.incCounter(dataset.id, config.failedEventCount)
-      context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED.copy(errorReason = s"Event size is $eventSize"), obsrvMeta))
+      context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED.copy(errorReason = s"Event size is $eventSize, Max configured size is ${SystemConfig.maxEventSize}"), obsrvMeta))
     } else {
       metrics.incCounter(dataset.id, config.skippedExtractionCount)
       context.output(config.rawEventsOutputTag, markEventSkipped(dataset.id, eventData, obsrvMeta))
@@ -106,7 +106,7 @@ class ExtractionFunction(config: ExtractorConfig, @transient var dedupEngine: De
         val eventSize = eventJson.getBytes("UTF-8").length
         if (eventSize > config.eventMaxSize) {
           metrics.incCounter(dataset.id, config.failedEventCount)
-          context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED.copy(errorReason = s"Event size is $eventSize"), obsrvMeta))
+          context.output(config.failedEventsOutputTag, markEventFailed(dataset.id, eventData, ErrorConstants.EVENT_SIZE_EXCEEDED.copy(errorReason = s"Event size is $eventSize, Max configured size is ${SystemConfig.maxEventSize}"), obsrvMeta))
         } else {
           metrics.incCounter(dataset.id, config.successEventCount)
           context.output(config.rawEventsOutputTag, markEventSuccess(dataset.id, eventData, obsrvMeta))

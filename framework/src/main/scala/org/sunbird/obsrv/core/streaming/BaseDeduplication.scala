@@ -31,7 +31,8 @@ trait BaseDeduplication {
     } catch {
       case ex: ObsrvException =>
         logger.warn("BaseDeduplication:isDuplicate()-Exception", ex.getMessage)
-        val sysEvent = SystemEvent(PData(config.jobName, "flink", "deduplication"), Map("error_code" -> ex.error.errorCode, "error_msg" -> ex.error.errorMsg))
+        ex.printStackTrace()
+        val sysEvent = SystemEvent(PData(config.jobName, "flink", "deduplication"), Map("error_code" -> ex.error.errorCode, "error_msg" -> "Error while doing the deduplication check", "error_reason" -> ex.error.errorMsg))
         context.output(config.systemEventsOutputTag, JSONUtil.serialize(sysEvent))
         false
     }
