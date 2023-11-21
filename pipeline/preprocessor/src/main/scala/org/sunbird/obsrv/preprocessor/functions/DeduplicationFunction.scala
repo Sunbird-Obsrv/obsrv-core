@@ -42,26 +42,31 @@ class DeduplicationFunction(config: PipelinePreprocessorConfig)
   override def processElement(msg: mutable.Map[String, AnyRef],
                               context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
-
-    metrics.incCounter(config.defaultDatasetID, config.duplicationTotalMetricsCount)
-    val datasetId = msg.get(config.CONST_DATASET)
-    val datasetOpt = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
-    val dataset = datasetOpt.get
-    val dedupConfig = dataset.dedupConfig
-    if (dedupConfig.isDefined && dedupConfig.get.dropDuplicates.get) {
-      val event = msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]]
-      val eventAsText = JSONUtil.serialize(event)
-      val isDup = isDuplicate(dataset.id, dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
-      if (isDup) {
-        metrics.incCounter(dataset.id, config.duplicationEventMetricsCount)
-        context.output(config.duplicateEventsOutputTag, markFailed(msg, ErrorConstants.DUPLICATE_EVENT_FOUND, "Deduplication"))
+    try {
+      metrics.incCounter(config.defaultDatasetID, config.duplicationTotalMetricsCount)
+      val datasetId = msg.get(config.CONST_DATASET)
+      val datasetOpt = DatasetRegistry.getDataset(datasetId.get.asInstanceOf[String])
+      val dataset = datasetOpt.get
+      val dedupConfig = dataset.dedupConfig
+      if (dedupConfig.isDefined && dedupConfig.get.dropDuplicates.get) {
+        val event = msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]]
+        val eventAsText = JSONUtil.serialize(event)
+        val isDup = isDuplicate(dataset.id, dedupConfig.get.dedupKey, eventAsText, context, config)(dedupEngine)
+        if (isDup) {
+          metrics.incCounter(dataset.id, config.duplicationEventMetricsCount)
+          context.output(config.duplicateEventsOutputTag, markFailed(msg, ErrorConstants.DUPLICATE_EVENT_FOUND, "Deduplication"))
+        } else {
+          metrics.incCounter(dataset.id, config.duplicationProcessedEventMetricsCount)
+          context.output(config.uniqueEventsOutputTag, markSuccess(msg, "Deduplication"))
+        }
       } else {
-        metrics.incCounter(dataset.id, config.duplicationProcessedEventMetricsCount)
-        context.output(config.uniqueEventsOutputTag, markSuccess(msg, "Deduplication"))
+        metrics.incCounter(dataset.id, config.duplicationSkippedEventMetricsCount)
+        context.output(config.uniqueEventsOutputTag, msg)
       }
-    } else {
-      metrics.incCounter(dataset.id, config.duplicationSkippedEventMetricsCount)
-      context.output(config.uniqueEventsOutputTag, msg)
+    } catch {
+      case ex: Exception =>
+        logger.error("DeduplicationFunction:processElement() - Exception: ", ex.getMessage)
+        ex.printStackTrace()
     }
   }
 

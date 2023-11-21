@@ -31,7 +31,8 @@ trait BaseDeduplication {
     } catch {
       case ex: ObsrvException =>
         logger.warn("BaseDeduplication:isDuplicate()-Exception", ex.getMessage)
-        val sysEvent = SystemEvent(PData(config.jobName, "flink", "deduplication"), Map("error_code" -> ex.error.errorCode, "error_msg" -> ex.error.errorMsg))
+        ex.printStackTrace()
+        val sysEvent = SystemEvent(PData(config.jobName, "flink", "deduplication"), Map("error_code" -> ex.error.errorCode, "error_msg" -> "Error while doing the deduplication check", "error_reason" -> ex.error.errorMsg))
         context.output(config.systemEventsOutputTag, JSONUtil.serialize(sysEvent))
         false
     }
@@ -46,7 +47,7 @@ trait BaseDeduplication {
       throw new ObsrvException(ErrorConstants.NO_DEDUP_KEY_FOUND)
     }
     if (!node.isTextual) {
-      throw new ObsrvException(ErrorConstants.DEDUP_KEY_NOT_A_STRING)
+      throw new ObsrvException(ErrorConstants.DEDUP_KEY_NOT_A_STRING.copy(errorReason = s"Dedup key type is ${node.getNodeType}"))
     }
     node.asText()
   }

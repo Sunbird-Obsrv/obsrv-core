@@ -16,6 +16,7 @@ class RedisConnect(redisHost: String, redisPort: Int, defaultTimeOut: Int) exten
     catch {
       case e: InterruptedException =>
         logger.error("RedisConnect:getConnection() - Exception", e)
+        e.printStackTrace()
     }
     // $COVERAGE-ON$
     logger.info("Obtaining new Redis connection...")

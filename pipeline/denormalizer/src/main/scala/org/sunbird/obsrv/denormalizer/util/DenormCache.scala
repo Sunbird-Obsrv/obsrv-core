@@ -77,7 +77,7 @@ class DenormCache(val config: DenormalizerConfig) {
       throw new ObsrvException(ErrorConstants.DENORM_KEY_MISSING)
     }
     if (!denormFieldNode.isTextual) {
-      throw new ObsrvException(ErrorConstants.DENORM_KEY_NOT_A_STRING)
+      throw new ObsrvException(ErrorConstants.DENORM_KEY_NOT_A_STRING.copy(errorReason = s"Denorm key type is ${denormFieldNode.getNodeType}"))
     }
     val denormField = denormFieldNode.asText()
     pipeline.get(denormField)

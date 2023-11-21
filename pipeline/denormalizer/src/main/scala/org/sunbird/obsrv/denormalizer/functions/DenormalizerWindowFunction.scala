@@ -61,7 +61,6 @@ class DenormalizerWindowFunction(config: DenormalizerConfig)(implicit val eventT
                           context: ProcessWindowFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef], String, TimeWindow]#Context): Unit = {
 
     val datasetId = dataset.id
-
     val denormEvents = denormCache.denormMultipleEvents(datasetId, events, dataset.denormConfig.get.denormFields)
     denormEvents.foreach(denormEvent => {
       if (denormEvent.error.isEmpty) {

@@ -35,6 +35,7 @@ class DedupEngine(redisConnect: RedisConnect, store: Int, expirySeconds: Int) ex
     catch {
       case ex: JedisException =>
         logger.error("DedupEngine:storeChecksum() - Exception", ex)
+        ex.printStackTrace()
         this.redisConnection.close()
         this.redisConnection = redisConnect.getConnection(this.store, backoffTimeInMillis = 10000)
         this.redisConnection.select(this.store)

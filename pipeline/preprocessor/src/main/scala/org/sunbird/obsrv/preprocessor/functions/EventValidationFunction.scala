@@ -6,7 +6,7 @@ import org.apache.flink.configuration.Configuration
 import org.apache.flink.streaming.api.functions.ProcessFunction
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.exception.ObsrvException
-import org.sunbird.obsrv.core.model.ErrorConstants
+import org.sunbird.obsrv.core.model.{Constants, ErrorConstants}
 import org.sunbird.obsrv.core.model.Models.{PData, SystemEvent}
 import org.sunbird.obsrv.core.streaming.{BaseProcessFunction, Metrics, MetricsList}
 import org.sunbird.obsrv.core.util.JSONUtil
@@ -89,6 +89,8 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
       }
     } catch {
       case ex: ObsrvException =>
+        logger.error("EventValidationFunction:validateEvent()-Exception: ", ex.getMessage)
+        ex.printStackTrace()
         metrics.incCounter(dataset.id, config.validationFailureMetricsCount)
         context.output(config.failedEventsOutputTag, markFailed(msg, ex.error, "EventValidation"))
     }
@@ -104,9 +106,37 @@ class EventValidationFunction(config: PipelinePreprocessorConfig,
                                   context: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                                   validationReport: ProcessingReport): Unit = {
     val failedErrorMsg = schemaValidator.getInvalidFieldName(validationReport.toString)
+    var errorReasons: Array[Any] = Array()
+
+    validationReport.forEach(failure => {
+      val failureMessage = failure.getMessage
+      val failureJSON = failure.asJson()
+      val node = failureJSON.get(Constants.LEVEL).asText()
+      if (node == Constants.ERROR) {
+        val errorType = failureJSON.get("keyword").asText()
+        val field = failureJSON.get("schema").get("pointer").asText()
+        errorType match {
+          case "type" =>
+            val expectedType = failureJSON.get("expected").toString
+            val actualType = failureJSON.get("found").asText()
+            val finalErrorMessage = s"Expected data type for $field is $expectedType but found $actualType instead"
+            errorReasons = errorReasons :+ finalErrorMessage
+
+          case "required" =>
+            val missingFields = failureJSON.get("missing").toString
+            val finalErrorMessage = s"Missing required field(s) $missingFields"
+            errorReasons = errorReasons :+ finalErrorMessage
+
+          case _ =>
+            val finalErrorMessage = s"$failureMessage for field $field"
+            errorReasons = errorReasons :+ finalErrorMessage
+        }
+      }
+    })
+
     metrics.incCounter(dataset.id, config.validationFailureMetricsCount)
-    context.output(config.invalidEventsOutputTag, markFailed(event, ErrorConstants.SCHEMA_VALIDATION_FAILED, "EventValidation"))
-    val systemEvent = SystemEvent(PData(config.jobName, "flink", "validation"), Map("error_code" -> ErrorConstants.SCHEMA_VALIDATION_FAILED.errorCode, "error_msg" -> failedErrorMsg))
+    context.output(config.invalidEventsOutputTag, markFailed(event, ErrorConstants.SCHEMA_VALIDATION_FAILED.copy(errorReason = JSONUtil.serialize(errorReasons)), "EventValidation"))
+    val systemEvent = SystemEvent(PData(config.jobName, "flink", "validation"), Map(Constants.ERROR_CODE -> ErrorConstants.SCHEMA_VALIDATION_FAILED.errorCode, Constants.ERROR_MSG -> failedErrorMsg, Constants.ERROR_REASON -> JSONUtil.serialize(errorReasons)))
     context.output(config.systemEventsOutputTag, JSONUtil.serialize(systemEvent))
   }
 

@@ -8,8 +8,8 @@ import org.apache.flink.streaming.api.windowing.windows.TimeWindow
 import org.apache.flink.util.Collector
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
-import org.sunbird.obsrv.core.model.SystemConfig
-import org.sunbird.obsrv.core.util.Util
+import org.sunbird.obsrv.core.model.{Constants, SystemConfig}
+import org.sunbird.obsrv.core.util.{JSONUtil, Util}
 
 import java.lang
 import java.util.concurrent.ConcurrentHashMap
@@ -80,11 +80,13 @@ trait BaseFunction {
   }
 
   def markFailed(event: mutable.Map[String, AnyRef], error: Error, jobName: String): mutable.Map[String, AnyRef] = {
-    val obsrvMeta = Util.getMutableMap(event("obsrv_meta").asInstanceOf[Map[String, AnyRef]])
-    addError(obsrvMeta, Map("src" -> jobName, "error_code" -> error.errorCode, "error_msg" -> error.errorMsg))
-    addFlags(obsrvMeta, Map(jobName -> "failed"))
+    val obsrvMeta = Util.getMutableMap(event(Constants.OBSRV_META).asInstanceOf[Map[String, AnyRef]])
+    addError(obsrvMeta, Map(Constants.SRC -> jobName, Constants.ERROR_CODE -> error.errorCode, Constants.ERROR_MSG -> error.errorMsg, Constants.ERROR_REASON -> error.errorReason))
+    addFlags(obsrvMeta, Map(jobName -> Constants.FAILED))
     addTimespan(obsrvMeta, jobName)
-    event.put("obsrv_meta", obsrvMeta.toMap)
+    event.remove(Constants.OBSRV_META)
+    event.put(Constants.EVENT, JSONUtil.serialize(event))
+    event.put(Constants.OBSRV_META, obsrvMeta.toMap)
     event
   }
 
