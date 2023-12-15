@@ -25,7 +25,7 @@ abstract class BaseJobConfig[T](val config: Config, val jobName: String) extends
   private val kafkaProducerBatchSize: Int = config.getInt("kafka.producer.batch.size")
   private val kafkaProducerLingerMs: Int = config.getInt("kafka.producer.linger.ms")
   private val kafkaProducerCompression: String = if (config.hasPath("kafka.producer.compression")) config.getString("kafka.producer.compression") else "snappy"
-  val groupId: String = config.getString("kafka.groupId")
+  private val groupId: String = config.getString("kafka.groupId")
   val restartAttempts: Int = config.getInt("task.restart-strategy.attempts")
   val delayBetweenAttempts: Long = config.getLong("task.restart-strategy.delay")
   val kafkaConsumerParallelism: Int = config.getInt("task.consumer.parallelism")
@@ -45,20 +45,26 @@ abstract class BaseJobConfig[T](val config: Config, val jobName: String) extends
   val systemEventsProducer = "system-events-sink"
 
   // Checkpointing config
-  val enableCompressedCheckpointing: Boolean = config.getBoolean("job.enable.distributed.checkpointing")
+  val enableCompressedCheckpointing: Boolean = if (config.hasPath("job.enable.distributed.checkpointing")) config.getBoolean("job.enable.distributed.checkpointing") else false
   val checkpointingInterval: Int = config.getInt("task.checkpointing.interval")
   val checkpointingPauseSeconds: Int = config.getInt("task.checkpointing.pause.between.seconds")
-  val enableDistributedCheckpointing: Option[Boolean] = if (config.hasPath("job")) Option(config.getBoolean("job.enable.distributed.checkpointing")) else None
-  val checkpointingBaseUrl: Option[String] = if (config.hasPath("job")) Option(config.getString("job.statebackend.base.url")) else None
+  val enableDistributedCheckpointing: Option[Boolean] = if (config.hasPath("job.enable.distributed.checkpointing")) Option(config.getBoolean("job.enable.distributed.checkpointing")) else None
+  val checkpointingBaseUrl: Option[String] = if (config.hasPath("job.statebackend.base.url")) Option(config.getString("job.statebackend.base.url")) else None
 
   // Base Methods
-  def datasetType(): String = if(config.hasPath("dataset.type")) config.getString("dataset.type") else "dataset"
+  def datasetType(): String = if (config.hasPath("dataset.type")) config.getString("dataset.type") else "dataset"
 
   def inputTopic(): String
 
   def inputConsumer(): String
 
   def successTag(): OutputTag[T]
+
+  // Event Failures Common Variables
+  val failedEventProducer = "failed-events-sink"
+  val eventFailedMetricsCount: String = "failed-event-count"
+  val kafkaFailedTopic: String = config.getString("kafka.output.failed.topic")
+  def failedEventsOutputTag(): OutputTag[T]
 
   def kafkaConsumerProperties(kafkaBrokerServers: Option[String] = None, kafkaConsumerGroup: Option[String] = None): Properties = {
     val properties = new Properties()

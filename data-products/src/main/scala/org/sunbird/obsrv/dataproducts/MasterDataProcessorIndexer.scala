@@ -88,7 +88,7 @@ object MasterDataProcessorIndexer {
     val response = Unirest.post(config.getString("druid.indexer.url"))
       .header("Content-Type", "application/json")
       .body(ingestionSpec).asJson()
-    response.ifFailure(response => throw new Exception("Exception while submitting ingestion task"))
+    response.ifFailure(_ => throw new Exception("Exception while submitting ingestion task"))
   }
 
   private def updateDataSourceRef(datasource: DataSource, datasourceRef: String): Unit = {
@@ -100,7 +100,7 @@ object MasterDataProcessorIndexer {
     val response = Unirest.delete(config.getString("druid.datasource.delete.url") + datasourceRef)
       .header("Content-Type", "application/json")
       .asJson()
-    response.ifFailure(response => throw new Exception("Exception while deleting datasource" + datasourceRef))
+    response.ifFailure(_ => throw new Exception("Exception while deleting datasource" + datasourceRef))
   }
 
   private def createDataFile(dataset: Dataset, timestamp: Long, outputFilePath: String, objectKey: String): String = {
@@ -115,7 +115,7 @@ object MasterDataProcessorIndexer {
     val sc = new SparkContext(conf)
 
     val readWriteConf = ReadWriteConfig(scanCount = 1000, maxPipelineSize = 1000)
-    val rdd = sc.fromRedisKV("*")(readWriteConfig = readWriteConf)
+    sc.fromRedisKV("*")(readWriteConfig = readWriteConf)
       .map(f => JSONUtil.deserialize[mutable.Map[String, AnyRef]](f._2))
       .map(f => f.put("syncts", timestamp.asInstanceOf[AnyRef]))
       .map(f => JSONUtil.serialize(f))

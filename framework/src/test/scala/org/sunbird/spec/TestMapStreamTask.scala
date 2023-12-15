@@ -13,15 +13,17 @@ class TestMapStreamTask(config: BaseProcessTestMapConfig, kafkaConnector: FlinkK
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
     val dataStream = getMapDataStream(env, config, kafkaConnector)
     processStream(dataStream)
+    val dataStream2 = getMapDataStream(env, config, List(config.inputTopic()), config.kafkaConsumerProperties(), config.inputConsumer(), kafkaConnector)
     env.execute(config.jobName)
   }
 
   override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {
     val stream = dataStream.process(new TestMapStreamFunc(config))
     stream.getSideOutput(config.mapOutputTag)
-      .sinkTo(kafkaConnector.kafkaMapSink(config.kafkaMapOutputTopic))
+      .sinkTo(kafkaConnector.kafkaMapDynamicSink())
       .name("Map-Event-Producer")
 
+    addDefaultSinks(stream, config, kafkaConnector)
     stream.getSideOutput(config.mapOutputTag)
   }
 }

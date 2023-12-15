@@ -62,9 +62,9 @@
             <classifier>tests</classifier>
         </dependency>
         <dependency>
-            <groupId>it.ozimov</groupId>
+            <groupId>com.github.codemonstur</groupId>
             <artifactId>embedded-redis</artifactId>
-            <version>0.7.1</version>
+            <version>1.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>

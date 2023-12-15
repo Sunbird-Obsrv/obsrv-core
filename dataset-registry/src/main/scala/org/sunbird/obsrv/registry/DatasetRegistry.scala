@@ -4,58 +4,62 @@ import org.sunbird.obsrv.model.DatasetModels.{DataSource, Dataset, DatasetSource
 import org.sunbird.obsrv.service.DatasetRegistryService
 
 import java.sql.Timestamp
+import scala.collection.mutable
 
 object DatasetRegistry {
 
-  private val datasets: Map[String, Dataset] = DatasetRegistryService.readAllDatasets()
+  private val datasets: mutable.Map[String, Dataset] = mutable.Map[String, Dataset]()
+  datasets ++= DatasetRegistryService.readAllDatasets()
   private val datasetTransformations: Map[String, List[DatasetTransformation]] = DatasetRegistryService.readAllDatasetTransformations()
-  private val datasetSourceConfig: Option[List[DatasetSourceConfig]] = DatasetRegistryService.readAllDatasetSourceConfig()
-  private val datasources: Map[String, List[DataSource]] = DatasetRegistryService.readAllDatasources()
-
-  def getAllDatasets(): Map[String, Dataset] = datasets
 
   def getAllDatasets(datasetType: String): List[Dataset] = {
-    datasets.filter(f => f._2.datasetType.equals(datasetType)).values.toList
+    val datasetList = DatasetRegistryService.readAllDatasets()
+    datasetList.filter(f => f._2.datasetType.equals(datasetType)).values.toList
   }
 
   def getDataset(id: String): Option[Dataset] = {
-    datasets.get(id)
+    val datasetFromCache = datasets.get(id)
+    if (datasetFromCache.isDefined) datasetFromCache else {
+      val dataset = DatasetRegistryService.readDataset(id)
+      if (dataset.isDefined) datasets.put(dataset.get.id, dataset.get)
+      dataset
+    }
   }
 
-  def getDatasetSourceConfig(): Option[List[DatasetSourceConfig]] = {
-    datasetSourceConfig
+  def getAllDatasetSourceConfig(): Option[List[DatasetSourceConfig]] = {
+    DatasetRegistryService.readAllDatasetSourceConfig()
   }
 
-  def getDatasetSourceConfigById(datasetId: String): DatasetSourceConfig = {
-    datasetSourceConfig.map(configList => configList.filter(_.datasetId.equalsIgnoreCase(datasetId))).get.head
+  def getDatasetSourceConfigById(datasetId: String): Option[List[DatasetSourceConfig]] = {
+    DatasetRegistryService.readDatasetSourceConfig(datasetId)
   }
 
-  def getDatasetTransformations(id: String): Option[List[DatasetTransformation]] = {
-    datasetTransformations.get(id)
+  def getDatasetTransformations(datasetId: String): Option[List[DatasetTransformation]] = {
+    datasetTransformations.get(datasetId)
   }
 
   def getDatasources(datasetId: String): Option[List[DataSource]] = {
-    datasources.get(datasetId)
+    DatasetRegistryService.readDatasources(datasetId)
   }
 
   def getDataSetIds(datasetType: String): List[String] = {
     datasets.filter(f => f._2.datasetType.equals(datasetType)).keySet.toList
   }
 
-  def updateDatasourceRef(datasource: DataSource, datasourceRef: String): Unit = {
+  def updateDatasourceRef(datasource: DataSource, datasourceRef: String): Int = {
     DatasetRegistryService.updateDatasourceRef(datasource, datasourceRef)
   }
 
-  def updateConnectorStats(datasetId: String, lastFetchTimestamp: Timestamp, records: Long): Unit = {
-    DatasetRegistryService.updateConnectorStats(datasetId, lastFetchTimestamp, records)
+  def updateConnectorStats(id: String, lastFetchTimestamp: Timestamp, records: Long): Int = {
+    DatasetRegistryService.updateConnectorStats(id, lastFetchTimestamp, records)
   }
 
-  def updateConnectorDisconnections(datasetId: String, disconnections: Int): Unit = {
-    DatasetRegistryService.updateConnectorDisconnections(datasetId, disconnections)
+  def updateConnectorDisconnections(id: String, disconnections: Int): Int = {
+    DatasetRegistryService.updateConnectorDisconnections(id, disconnections)
   }
 
-  def updateConnectorAvgBatchReadTime(datasetId: String, avgReadTime: Long): Unit = {
-    DatasetRegistryService.updateConnectorAvgBatchReadTime(datasetId, avgReadTime)
+  def updateConnectorAvgBatchReadTime(id: String, avgReadTime: Long): Int = {
+    DatasetRegistryService.updateConnectorAvgBatchReadTime(id, avgReadTime)
   }
 
 }

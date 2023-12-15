@@ -22,22 +22,25 @@ class DenormalizerStreamTask(config: DenormalizerConfig, kafkaConnector: FlinkKa
   def process(): Unit = {
 
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(config)
-    val dataStream = getMapDataStream(env, config, kafkaConnector)
-    processStream(dataStream)
+    process(env)
     env.execute(config.jobName)
   }
   // $COVERAGE-ON$
+
+  def process(env: StreamExecutionEnvironment): Unit = {
+    val dataStream = getMapDataStream(env, config, kafkaConnector)
+    processStream(dataStream)
+  }
 
   override def processStream(dataStream: DataStream[mutable.Map[String, AnyRef]]): DataStream[mutable.Map[String, AnyRef]] = {
     val denormStream = dataStream
       .process(new DenormalizerFunction(config)).name(config.denormalizationFunction).uid(config.denormalizationFunction)
       .setParallelism(config.downstreamOperatorsParallelism)
 
-    denormStream.getSideOutput(config.denormEventsTag).sinkTo(kafkaConnector.kafkaMapSink(config.denormOutputTopic))
+    denormStream.getSideOutput(config.denormEventsTag).sinkTo(kafkaConnector.kafkaSink[mutable.Map[String, AnyRef]](config.denormOutputTopic))
       .name(config.DENORM_EVENTS_PRODUCER).uid(config.DENORM_EVENTS_PRODUCER).setParallelism(config.downstreamOperatorsParallelism)
-    denormStream.getSideOutput(config.denormFailedTag).sinkTo(kafkaConnector.kafkaMapSink(config.denormFailedTopic))
-      .name(config.DENORM_FAILED_EVENTS_PRODUCER).uid(config.DENORM_FAILED_EVENTS_PRODUCER).setParallelism(config.downstreamOperatorsParallelism)
 
+    addDefaultSinks(denormStream, config, kafkaConnector)
     denormStream.getSideOutput(config.successTag())
   }
 }
