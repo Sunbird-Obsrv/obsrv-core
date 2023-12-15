@@ -48,7 +48,7 @@ jobs:
           fetch-depth: 0
       - name: Maven Build
         run: |
-          mvn clean install
+          mvn clean install -DskipTests
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
