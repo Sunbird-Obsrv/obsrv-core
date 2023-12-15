@@ -1,8 +1,6 @@
 package org.sunbird.obsrv.denormalizer.util
 
-import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.cache.RedisConnect
-import org.sunbird.obsrv.core.exception.ObsrvException
 import org.sunbird.obsrv.core.model.ErrorConstants
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.util.{JSONUtil, Util}
@@ -12,11 +10,12 @@ import redis.clients.jedis.{Pipeline, Response}
 
 import scala.collection.mutable
 
-case class DenormEvent(msg: mutable.Map[String, AnyRef], var responses: Option[mutable.Map[String, Response[String]]], var error: Option[Error])
+case class DenormFieldStatus(fieldValue: String, var success: Boolean, var error: Option[Error])
+
+case class DenormEvent(msg: mutable.Map[String, AnyRef], var responses: Option[mutable.Map[String, Response[String]]] = None, var fieldStatus: mutable.Map[String, DenormFieldStatus] = mutable.Map[String, DenormFieldStatus]())
 
 class DenormCache(val config: DenormalizerConfig) {
 
-  private[this] val logger = LoggerFactory.getLogger(classOf[DenormCache])
   private val datasetPipelineMap: mutable.Map[String, Pipeline] = mutable.Map[String, Pipeline]()
 
   def close(): Unit = {
@@ -25,25 +24,42 @@ class DenormCache(val config: DenormalizerConfig) {
 
   def open(datasets: List[Dataset]): Unit = {
     datasets.map(dataset => {
-      if (dataset.denormConfig.isDefined) {
-        val denormConfig = dataset.denormConfig.get
-        val redisConnect = new RedisConnect(denormConfig.redisDBHost, denormConfig.redisDBPort, config.redisConnectionTimeout)
-        val pipeline: Pipeline = redisConnect.getConnection(0).pipelined()
-        datasetPipelineMap.put(dataset.id, pipeline)
-      }
+      open(dataset)
     })
   }
 
-  def denormEvent(datasetId: String, event: mutable.Map[String, AnyRef], denormFieldConfigs: List[DenormFieldConfig]): mutable.Map[String, AnyRef] = {
-    val pipeline = this.datasetPipelineMap(datasetId)
-    pipeline.clear()
+  def open(dataset: Dataset): Unit = {
+    if (!datasetPipelineMap.contains(dataset.id) && dataset.denormConfig.isDefined) {
+      val denormConfig = dataset.denormConfig.get
+      val redisConnect = new RedisConnect(denormConfig.redisDBHost, denormConfig.redisDBPort, config.redisConnectionTimeout)
+      val pipeline: Pipeline = redisConnect.getConnection(0).pipelined()
+      datasetPipelineMap.put(dataset.id, pipeline)
+    }
+  }
+
+  private def processDenorm(denormEvent: DenormEvent, pipeline: Pipeline, denormFieldConfigs: List[DenormFieldConfig]): Unit = {
+
     val responses: mutable.Map[String, Response[String]] = mutable.Map[String, Response[String]]()
+    val fieldStatus: mutable.Map[String, DenormFieldStatus] = mutable.Map[String, DenormFieldStatus]()
+    val event = Util.getMutableMap(denormEvent.msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
     val eventStr = JSONUtil.serialize(event)
     denormFieldConfigs.foreach(fieldConfig => {
-      responses.put(fieldConfig.denormOutField, getFromCache(pipeline, fieldConfig, eventStr))
+      val denormFieldStatus = extractField(fieldConfig, eventStr)
+      fieldStatus.put(fieldConfig.denormOutField, denormFieldStatus)
+      if (!denormFieldStatus.fieldValue.isBlank) {
+        responses.put(fieldConfig.denormOutField, getFromCache(pipeline, denormFieldStatus.fieldValue, fieldConfig))
+      }
     })
+    denormEvent.fieldStatus = fieldStatus
+    denormEvent.responses = Some(responses)
+  }
+
+  def denormEvent(datasetId: String, denormEvent: DenormEvent, denormFieldConfigs: List[DenormFieldConfig]): DenormEvent = {
+    val pipeline = this.datasetPipelineMap(datasetId)
+    pipeline.clear()
+    processDenorm(denormEvent, pipeline, denormFieldConfigs)
     pipeline.sync()
-    updateEvent(event, responses)
+    updateEvent(denormEvent)
   }
 
   def denormMultipleEvents(datasetId: String, events: List[DenormEvent], denormFieldConfigs: List[DenormFieldConfig]): List[DenormEvent] = {
@@ -51,62 +67,50 @@ class DenormCache(val config: DenormalizerConfig) {
     pipeline.clear()
 
     events.foreach(denormEvent => {
-      val responses: mutable.Map[String, Response[String]] = mutable.Map[String, Response[String]]()
-      val event = Util.getMutableMap(denormEvent.msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
-      val eventStr = JSONUtil.serialize(event)
-      try {
-        denormFieldConfigs.foreach(fieldConfig => {
-          responses.put(fieldConfig.denormOutField, getFromCache(pipeline, fieldConfig, eventStr))
-        })
-        denormEvent.responses = Some(responses)
-      } catch {
-        case ex: ObsrvException =>
-          logger.error("DenormCache:denormMultipleEvents() - Exception", ex)
-          denormEvent.error = Some(ex.error)
-      }
+      processDenorm(denormEvent, pipeline, denormFieldConfigs)
     })
 
     pipeline.sync()
     updateMultipleEvents(events)
   }
 
-  private def getFromCache(pipeline: Pipeline, fieldConfig: DenormFieldConfig, eventStr: String): Response[String] = {
-    pipeline.select(fieldConfig.redisDB)
+  private def extractField(fieldConfig: DenormFieldConfig, eventStr: String): DenormFieldStatus = {
     val denormFieldNode = JSONUtil.getKey(fieldConfig.denormKey, eventStr)
     if (denormFieldNode.isMissingNode) {
-      throw new ObsrvException(ErrorConstants.DENORM_KEY_MISSING)
+      DenormFieldStatus("", success = false, Some(ErrorConstants.DENORM_KEY_MISSING))
+    } else {
+      if (denormFieldNode.isTextual || denormFieldNode.isNumber) {
+        DenormFieldStatus(denormFieldNode.asText(), success = false, None)
+      } else {
+        DenormFieldStatus("", success = false, Some(ErrorConstants.DENORM_KEY_NOT_A_STRING_OR_NUMBER))
+      }
     }
-    if (!denormFieldNode.isTextual) {
-      throw new ObsrvException(ErrorConstants.DENORM_KEY_NOT_A_STRING.copy(errorReason = s"Denorm key type is ${denormFieldNode.getNodeType}"))
-    }
-    val denormField = denormFieldNode.asText()
+  }
+
+  private def getFromCache(pipeline: Pipeline, denormField: String, fieldConfig: DenormFieldConfig): Response[String] = {
+    pipeline.select(fieldConfig.redisDB)
     pipeline.get(denormField)
   }
 
-  private def updateEvent(event: mutable.Map[String, AnyRef], responses: mutable.Map[String, Response[String]]): mutable.Map[String, AnyRef] = {
+  private def updateEvent(denormEvent: DenormEvent): DenormEvent = {
 
-    responses.map(f => {
+    val event = Util.getMutableMap(denormEvent.msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
+    denormEvent.responses.get.foreach(f => {
       if (f._2.get() != null) {
+        denormEvent.fieldStatus(f._1).success = true
         event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
+      } else {
+        denormEvent.fieldStatus(f._1).error = Some(ErrorConstants.DENORM_DATA_NOT_FOUND)
       }
     })
-    event
+    denormEvent.msg.put(config.CONST_EVENT, event.toMap)
+    denormEvent
   }
 
   private def updateMultipleEvents(events: List[DenormEvent]): List[DenormEvent] = {
 
     events.map(denormEvent => {
-      if (denormEvent.responses.isDefined) {
-        val event = Util.getMutableMap(denormEvent.msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
-        denormEvent.responses.get.map(f => {
-          if (f._2.get() != null) {
-            event.put(f._1, JSONUtil.deserialize[Map[String, AnyRef]](f._2.get()))
-          }
-        })
-        denormEvent.msg.put(config.CONST_EVENT, event.toMap)
-      }
-      denormEvent
+      updateEvent(denormEvent)
     })
   }
-
 }

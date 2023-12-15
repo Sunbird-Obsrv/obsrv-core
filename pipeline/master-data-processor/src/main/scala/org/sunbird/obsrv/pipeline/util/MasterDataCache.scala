@@ -1,12 +1,12 @@
 package org.sunbird.obsrv.pipeline.util
 
-import org.json4s.{DefaultFormats, Formats, JNothing, JValue}
+import org.json4s.native.JsonMethods._
+import org.json4s.{JNothing, JValue}
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.cache.RedisConnect
-import org.sunbird.obsrv.model.DatasetModels.{Dataset, DatasetConfig}
+import org.sunbird.obsrv.model.DatasetModels.Dataset
 import org.sunbird.obsrv.pipeline.task.MasterDataProcessorConfig
 import redis.clients.jedis.{Pipeline, Response}
-import org.json4s.native.JsonMethods._
 
 import scala.collection.mutable
 
@@ -21,11 +21,17 @@ class MasterDataCache(val config: MasterDataProcessorConfig) {
 
   def open(datasets: List[Dataset]): Unit = {
     datasets.map(dataset => {
+      open(dataset)
+    })
+  }
+
+  def open(dataset: Dataset): Unit = {
+    if (!datasetPipelineMap.contains(dataset.id)) {
       val datasetConfig = dataset.datasetConfig
       val redisConnect = new RedisConnect(datasetConfig.redisDBHost.get, datasetConfig.redisDBPort.get, config.redisConnectionTimeout)
       val pipeline: Pipeline = redisConnect.getConnection(0).pipelined()
       datasetPipelineMap.put(dataset.id, pipeline)
-    })
+    }
   }
 
   def process(dataset: Dataset, eventMap: Map[String, JValue]): (Int, Int) = {
@@ -48,7 +54,7 @@ class MasterDataCache(val config: MasterDataProcessorConfig) {
     responses.map(f => (f._1, f._2.get()))
   }
 
-  private def updateCache(dataset: Dataset, dataFromCache: mutable.Map[String, String], eventMap: Map[String, JValue], pipeline: Pipeline ): Unit = {
+  private def updateCache(dataset: Dataset, dataFromCache: mutable.Map[String, String], eventMap: Map[String, JValue], pipeline: Pipeline): Unit = {
     pipeline.clear()
     pipeline.select(dataset.datasetConfig.redisDB.get)
     eventMap.foreach(f => {

@@ -20,36 +20,33 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
 
   // Kafka Topic Configuration
   val kafkaInputTopic: String = config.getString("kafka.input.topic")
-  val kafkaFailedTopic: String = config.getString("kafka.output.failed.topic")
   val kafkaInvalidTopic: String = config.getString("kafka.output.invalid.topic")
   val kafkaUniqueTopic: String = config.getString("kafka.output.unique.topic")
   val kafkaDuplicateTopic: String = config.getString("kafka.output.duplicate.topic")
 
   // Validation & dedup Stream out put tag
-  val failedEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("failed-events")
   val invalidEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("invalid-events")
   val validEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("valid-events")
   val uniqueEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("unique-events")
   val duplicateEventsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("duplicate-events")
 
   // Validation job metrics
-  val validationTotalMetricsCount = "validation-total-event-count"
-  val validationSuccessMetricsCount = "validation-success-event-count"
-  val validationFailureMetricsCount = "validation-failed-event-count"
-  val eventFailedMetricsCount = "failed-event-count"
-  val validationSkipMetricsCount = "validation-skipped-event-count"
+  val validationTotalMetricsCount = "validator-total-count"
+  val validationSuccessMetricsCount = "validator-success-count"
+  val validationFailureMetricsCount = "validator-failed-count"
+  val validationSkipMetricsCount = "validator-skipped-count"
+  val eventIgnoredMetricsCount = "validator-ignored-count"
 
-  val duplicationTotalMetricsCount = "duplicate-total-count"
-  val duplicationEventMetricsCount = "duplicate-event-count"
-  val duplicationSkippedEventMetricsCount = "duplicate-skipped-event-count"
-  val duplicationProcessedEventMetricsCount = "duplicate-processed-event-count"
+  val duplicationTotalMetricsCount = "dedup-total-count"
+  val duplicationEventMetricsCount = "dedup-failed-count"
+  val duplicationSkippedEventMetricsCount = "dedup-skipped-count"
+  val duplicationProcessedEventMetricsCount = "dedup-success-count"
 
   // Consumers
   val validationConsumer = "validation-consumer"
   val dedupConsumer = "deduplication-consumer"
 
   // Producers
-  val failedEventProducer = "failed-events-sink"
   val invalidEventProducer = "invalid-events-sink"
   val duplicateEventProducer = "duplicate-events-sink"
   val uniqueEventProducer = "unique-events-sink"
@@ -57,6 +54,8 @@ class PipelinePreprocessorConfig(override val config: Config) extends BaseJobCon
   override def inputTopic(): String = kafkaInputTopic
 
   override def inputConsumer(): String = validationConsumer
+
+  override def failedEventsOutputTag(): OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("failed-events")
 
   override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = uniqueEventsOutputTag
 }

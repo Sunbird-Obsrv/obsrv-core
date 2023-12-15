@@ -17,34 +17,38 @@ class RedisTestSpec extends BaseSpec with Matchers with MockitoSugar {
     val redisConnection = new RedisConnect(baseConfig.redisHost, baseConfig.redisPort, baseConfig.redisConnectionTimeout)
     val status = redisConnection.getConnection(2)
     status.isConnected should be(true)
+
+    val status2 = redisConnection.getConnection(2, 1000l)
+    status2.isConnected should be(true)
   }
 
-  "DedupEngine functionality" should "be able to identify if the key is unique or duplicate & it should able throw jedis excption for invalid action" in  intercept[JedisException] {
+  "DedupEngine functionality" should "be able to identify if the key is unique or duplicate & it should able throw jedis exception for invalid action" in  {
     val redisConnection = new RedisConnect(baseConfig.redisHost, baseConfig.redisPort, baseConfig.redisConnectionTimeout)
     val dedupEngine = new DedupEngine(redisConnection, 2, 200)
-    dedupEngine.getRedisConnection should not be (null)
+    dedupEngine.getRedisConnection should not be null
     dedupEngine.isUniqueEvent("key-1") should be(true)
     dedupEngine.storeChecksum("key-1")
     dedupEngine.isUniqueEvent("key-1") should be(false)
-    dedupEngine.isUniqueEvent(null)
+    a[JedisException] should be thrownBy {dedupEngine.isUniqueEvent(null)}
     dedupEngine.closeConnectionPool()
   }
 
-  it should "be able to reconnect when a jedis exception for invalid action is thrown" in intercept[JedisException] {
+  it should "be able to reconnect when a jedis exception for invalid action is thrown" in {
     val redisConnection = new RedisConnect(baseConfig.redisHost, baseConfig.redisPort, baseConfig.redisConnectionTimeout)
     val dedupEngine = new DedupEngine(redisConnection, 0, 4309535)
     dedupEngine.isUniqueEvent("event-id-3") should be(true)
-    dedupEngine.storeChecksum(null)
-    dedupEngine.getRedisConnection should not be(null)
+    a[JedisException] should be thrownBy {dedupEngine.storeChecksum(null)}
+    dedupEngine.getRedisConnection should not be null
   }
-
-
 
   "RestUtil functionality" should "be able to return response" in {
     val restUtil = new RestUtil()
-    val url = "https://httpbin.org/json";
-    val response = restUtil.get(url);
+    val url = "https://httpbin.org/json"
+    val response = restUtil.get(url, Some(Map("x-auth" -> "123")))
     response should not be null
+
+    val response2 = restUtil.get("https://httpbin.org/json")
+    response2 should not be null
   }
 
 }

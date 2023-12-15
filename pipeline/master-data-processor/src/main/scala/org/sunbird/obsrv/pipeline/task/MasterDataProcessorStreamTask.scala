@@ -1,18 +1,15 @@
 package org.sunbird.obsrv.pipeline.task
 
 import com.typesafe.config.{Config, ConfigFactory}
-import org.apache.flink.api.common.typeinfo.TypeInformation
-import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
 import org.apache.flink.streaming.api.datastream.DataStream
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment
 import org.apache.flink.streaming.api.windowing.time.Time
 import org.sunbird.obsrv.core.streaming.{BaseStreamTask, FlinkKafkaConnector}
 import org.sunbird.obsrv.core.util.{DatasetKeySelector, FlinkUtil, TumblingProcessingTimeCountWindows}
-import org.sunbird.obsrv.extractor.functions.ExtractionFunction
+import org.sunbird.obsrv.denormalizer.task.{DenormalizerConfig, DenormalizerStreamTask}
 import org.sunbird.obsrv.extractor.task.{ExtractorConfig, ExtractorStreamTask}
 import org.sunbird.obsrv.pipeline.function.MasterDataProcessorFunction
-import org.sunbird.obsrv.preprocessor.functions.EventValidationFunction
 import org.sunbird.obsrv.preprocessor.task.{PipelinePreprocessorConfig, PipelinePreprocessorStreamTask}
 import org.sunbird.obsrv.transformer.task.{TransformerConfig, TransformerStreamTask}
 
@@ -39,7 +36,7 @@ class MasterDataProcessorStreamTask(config: Config, masterDataConfig: MasterData
   /**
    * Created an overloaded process function to enable unit testing
    *
-   * @param env
+   * @param env StreamExecutionEnvironment
    */
   def process(env: StreamExecutionEnvironment): Unit = {
 
@@ -51,11 +48,14 @@ class MasterDataProcessorStreamTask(config: Config, masterDataConfig: MasterData
 
     val extractorTask = new ExtractorStreamTask(new ExtractorConfig(config), kafkaConnector)
     val preprocessorTask = new PipelinePreprocessorStreamTask(new PipelinePreprocessorConfig(config), kafkaConnector)
+    val denormalizerTask = new DenormalizerStreamTask(new DenormalizerConfig(config), kafkaConnector)
     val transformerTask = new TransformerStreamTask(new TransformerConfig(config), kafkaConnector)
 
     val transformedStream = transformerTask.processStream(
-      preprocessorTask.processStream(
-        extractorTask.processStream(dataStream)
+      denormalizerTask.processStream(
+        preprocessorTask.processStream(
+          extractorTask.processStream(dataStream)
+        )
       )
     )
 
@@ -65,12 +65,7 @@ class MasterDataProcessorStreamTask(config: Config, masterDataConfig: MasterData
     val processedStream = windowedStream.process(new MasterDataProcessorFunction(masterDataConfig)).name(masterDataConfig.masterDataProcessFunction)
       .uid(masterDataConfig.masterDataProcessFunction).setParallelism(masterDataConfig.downstreamOperatorsParallelism)
 
-    processedStream.getSideOutput(masterDataConfig.failedEventsTag).sinkTo(kafkaConnector.kafkaMapSink(masterDataConfig.kafkaFailedTopic))
-      .name(masterDataConfig.failedEventsProducer).uid(masterDataConfig.failedEventsProducer).setParallelism(masterDataConfig.downstreamOperatorsParallelism)
-
-    processedStream.getSideOutput(masterDataConfig.successTag()).sinkTo(kafkaConnector.kafkaMapSink(masterDataConfig.kafkaStatsTopic))
-      .name("stats-producer").uid("stats-producer").setParallelism(masterDataConfig.downstreamOperatorsParallelism)
-
+    addDefaultSinks(processedStream, masterDataConfig, kafkaConnector)
     processedStream.getSideOutput(masterDataConfig.successTag())
   }
 }

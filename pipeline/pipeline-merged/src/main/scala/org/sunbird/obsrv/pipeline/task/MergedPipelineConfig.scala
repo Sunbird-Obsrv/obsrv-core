@@ -14,19 +14,11 @@ class MergedPipelineConfig(override val config: Config) extends BaseJobConfig[mu
   implicit val eventTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
 
   // Kafka Topics Configuration
-  val kafkaInputTopic: String = config.getString("kafka.input.topic")
-  val kafkaStatsTopic: String = config.getString("kafka.stats.topic")
+  override def inputTopic(): String = config.getString("kafka.input.topic")
 
-  val statsOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("processing_stats")
-
-  // Functions
-  val druidRouterFunction = "DruidRouterFunction"
-
-  // Producers
-  val druidRouterProducer = "druid-router-sink"
-  val processingStatsProducer = "processing-stats-sink"
-
-  override def inputTopic(): String = kafkaInputTopic
   override def inputConsumer(): String = "pipeline-consumer"
-  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = statsOutputTag
+
+  override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("processing_stats")
+
+  override def failedEventsOutputTag(): OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("failed-events")
 }

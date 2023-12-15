@@ -13,6 +13,8 @@ import org.sunbird.obsrv.router.task.DruidRouterConfig
 
 import scala.collection.mutable
 
+// $COVERAGE-OFF$ Disabling scoverage as the below function is deprecated
+@Deprecated
 class DruidRouterFunction(config: DruidRouterConfig) extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
   private[this] val logger = LoggerFactory.getLogger(classOf[DruidRouterFunction])
@@ -53,3 +55,4 @@ class DruidRouterFunction(config: DruidRouterConfig) extends BaseProcessFunction
     }
   }
 }
+// $COVERAGE-ON$

@@ -51,8 +51,22 @@ class PostgresConnect(config: PostgresConnectionConfig) {
     catch {
       case ex: SQLException =>
         logger.error("PostgresConnect:execute() - Exception", ex)
-        reset
+        reset()
         statement.execute(query)
+    }
+    // $COVERAGE-ON$
+  }
+
+  def executeUpdate(query: String): Int = {
+    try {
+      statement.executeUpdate(query)
+    }
+      // $COVERAGE-OFF$ Disabling scoverage as the below code can only be invoked if postgres connection is stale
+    catch {
+      case ex: SQLException =>
+        logger.error("PostgresConnect:execute() - Exception", ex)
+        reset()
+        statement.executeUpdate(query)
     }
     // $COVERAGE-ON$
   }

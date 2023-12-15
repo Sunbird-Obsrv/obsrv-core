@@ -9,7 +9,7 @@ import org.sunbird.obsrv.core.util.FlinkUtil
 import org.sunbird.obsrv.denormalizer.task.{DenormalizerConfig, DenormalizerStreamTask}
 import org.sunbird.obsrv.extractor.task.{ExtractorConfig, ExtractorStreamTask}
 import org.sunbird.obsrv.preprocessor.task.{PipelinePreprocessorConfig, PipelinePreprocessorStreamTask}
-import org.sunbird.obsrv.router.task.{DruidRouterConfig, DruidRouterStreamTask}
+import org.sunbird.obsrv.router.task.{DruidRouterConfig, DynamicRouterStreamTask}
 import org.sunbird.obsrv.transformer.task.{TransformerConfig, TransformerStreamTask}
 
 import java.io.File
@@ -34,7 +34,7 @@ class MergedPipelineStreamTask(config: Config, mergedPipelineConfig: MergedPipel
 
   /**
    * Created an overloaded process function to enable unit testing
-   * @param env
+   * @param env StreamExecutionEnvironment
    */
   def process(env: StreamExecutionEnvironment): Unit = {
 
@@ -48,7 +48,7 @@ class MergedPipelineStreamTask(config: Config, mergedPipelineConfig: MergedPipel
     val preprocessorTask = new PipelinePreprocessorStreamTask(new PipelinePreprocessorConfig(config), kafkaConnector)
     val denormalizerTask = new DenormalizerStreamTask(new DenormalizerConfig(config), kafkaConnector)
     val transformerTask = new TransformerStreamTask(new TransformerConfig(config), kafkaConnector)
-    val routerTask = new DruidRouterStreamTask(new DruidRouterConfig(config), kafkaConnector)
+    val routerTask = new DynamicRouterStreamTask(new DruidRouterConfig(config), kafkaConnector)
 
     routerTask.processStream(
       transformerTask.processStream(

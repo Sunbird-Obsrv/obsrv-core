@@ -1,4 +1,4 @@
-package org.sunbird.obsrv.kafkaconnector.task
+package org.sunbird.obsrv.connector.task
 
 import com.typesafe.config.Config
 import org.apache.flink.api.common.typeinfo.TypeInformation
@@ -8,7 +8,7 @@ import org.sunbird.obsrv.core.streaming.BaseJobConfig
 
 import scala.collection.mutable
 
-class KafkaConnectorConfig (override val config: Config) extends BaseJobConfig[String](config, "KafkaConnectorJob") {
+class KafkaConnectorConfig(override val config: Config) extends BaseJobConfig[String](config, "KafkaConnectorJob") {
 
   private val serialVersionUID = 2905979435603791379L
 
@@ -16,9 +16,10 @@ class KafkaConnectorConfig (override val config: Config) extends BaseJobConfig[S
   implicit val stringTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
   override def inputTopic(): String = ""
+
   override def inputConsumer(): String = ""
 
-  private val DUMMY_OUTPUT_TAG = "dummy-events"
-  override def successTag(): OutputTag[String] = OutputTag[String](DUMMY_OUTPUT_TAG)
+  override def successTag(): OutputTag[String] = OutputTag[String]("dummy-events")
 
+  override def failedEventsOutputTag(): OutputTag[String] = OutputTag[String]("failed-events")
 }

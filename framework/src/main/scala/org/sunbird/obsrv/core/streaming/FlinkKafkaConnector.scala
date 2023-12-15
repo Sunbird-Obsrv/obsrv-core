@@ -8,18 +8,13 @@ import org.apache.kafka.clients.consumer.OffsetResetStrategy
 import org.sunbird.obsrv.core.serde._
 
 import java.util.Properties
-import scala.collection.mutable
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
 
   def kafkaStringSource(kafkaTopic: String): KafkaSource[String] = {
-    KafkaSource.builder[String]()
-      .setTopics(kafkaTopic)
-      .setDeserializer(new StringDeserializationSchema)
-      .setProperties(config.kafkaConsumerProperties())
-      .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
-      .build()
+    kafkaStringSource(List(kafkaTopic), config.kafkaConsumerProperties())
   }
 
   def kafkaStringSource(kafkaTopic: List[String], consumerProperties: Properties): KafkaSource[String] = {
@@ -31,36 +26,31 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
       .build()
   }
 
-  def kafkaStringSink(kafkaTopic: String): KafkaSink[String] = {
-    KafkaSink.builder[String]()
+  def kafkaSink[T](kafkaTopic: String): KafkaSink[T] = {
+    KafkaSink.builder[T]()
       .setDeliverGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
-      .setRecordSerializer(new StringSerializationSchema(kafkaTopic))
+      .setRecordSerializer(new SerializationSchema(kafkaTopic))
       .setKafkaProducerConfig(config.kafkaProducerProperties)
       .build()
   }
 
   def kafkaMapSource(kafkaTopic: String): KafkaSource[mutable.Map[String, AnyRef]] = {
-    KafkaSource.builder[mutable.Map[String, AnyRef]]()
-      .setTopics(kafkaTopic)
-      .setDeserializer(new MapDeserializationSchema)
-      .setProperties(config.kafkaConsumerProperties())
-      .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
-      .build()
+    kafkaMapSource(List(kafkaTopic), config.kafkaConsumerProperties())
   }
 
   def kafkaMapSource(kafkaTopics: List[String], consumerProperties: Properties): KafkaSource[mutable.Map[String, AnyRef]] = {
     KafkaSource.builder[mutable.Map[String, AnyRef]]()
       .setTopics(kafkaTopics.asJava)
       .setDeserializer(new MapDeserializationSchema)
-      .setProperties(consumerProperties)
+      .setProperties(config.kafkaConsumerProperties())
       .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
       .build()
   }
 
-  def kafkaMapSink(kafkaTopic: String): KafkaSink[mutable.Map[String, AnyRef]] = {
+  def kafkaMapDynamicSink(): KafkaSink[mutable.Map[String, AnyRef]] = {
     KafkaSink.builder[mutable.Map[String, AnyRef]]()
       .setDeliverGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
-      .setRecordSerializer(new MapSerializationSchema(kafkaTopic))
+      .setRecordSerializer(new DynamicMapSerializationSchema())
       .setKafkaProducerConfig(config.kafkaProducerProperties)
       .build()
   }

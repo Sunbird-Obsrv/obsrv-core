@@ -1,7 +1,6 @@
 package org.sunbird.obsrv.preprocessor.task
 
 import com.typesafe.config.ConfigFactory
-import org.apache.flink.api.common.eventtime.WatermarkStrategy
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.java.typeutils.TypeExtractor
 import org.apache.flink.api.java.utils.ParameterTool
@@ -44,20 +43,21 @@ class PipelinePreprocessorStreamTask(config: PipelinePreprocessorConfig, kafkaCo
     /**
      * Sink for invalid events, duplicate events and system events
      */
-    validStream.getSideOutput(config.failedEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaFailedTopic))
+    validStream.getSideOutput(config.failedEventsOutputTag()).sinkTo(kafkaConnector.kafkaSink[mutable.Map[String, AnyRef]](config.kafkaFailedTopic))
       .name(config.failedEventProducer).uid(config.failedEventProducer).setParallelism(config.downstreamOperatorsParallelism)
-    validStream.getSideOutput(config.systemEventsOutputTag).sinkTo(kafkaConnector.kafkaStringSink(config.kafkaSystemTopic))
+    validStream.getSideOutput(config.systemEventsOutputTag).sinkTo(kafkaConnector.kafkaSink[String](config.kafkaSystemTopic))
       .name(config.validationConsumer + "-" + config.systemEventsProducer).uid(config.validationConsumer + "-" + config.systemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
-    validStream.getSideOutput(config.invalidEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaInvalidTopic))
+    validStream.getSideOutput(config.invalidEventsOutputTag).sinkTo(kafkaConnector.kafkaSink[mutable.Map[String, AnyRef]](config.kafkaInvalidTopic))
       .name(config.invalidEventProducer).uid(config.invalidEventProducer).setParallelism(config.downstreamOperatorsParallelism)
 
-    uniqueStream.getSideOutput(config.duplicateEventsOutputTag).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaDuplicateTopic))
+    uniqueStream.getSideOutput(config.duplicateEventsOutputTag).sinkTo(kafkaConnector.kafkaSink[mutable.Map[String, AnyRef]](config.kafkaDuplicateTopic))
       .name(config.duplicateEventProducer).uid(config.duplicateEventProducer).setParallelism(config.downstreamOperatorsParallelism)
-    uniqueStream.getSideOutput(config.systemEventsOutputTag).sinkTo(kafkaConnector.kafkaStringSink(config.kafkaSystemTopic))
+    uniqueStream.getSideOutput(config.systemEventsOutputTag).sinkTo(kafkaConnector.kafkaSink[String](config.kafkaSystemTopic))
       .name(config.dedupConsumer + "-" + config.systemEventsProducer).uid(config.dedupConsumer + "-" + config.systemEventsProducer).setParallelism(config.downstreamOperatorsParallelism)
-    uniqueStream.getSideOutput(config.successTag()).sinkTo(kafkaConnector.kafkaMapSink(config.kafkaUniqueTopic))
+    uniqueStream.getSideOutput(config.successTag()).sinkTo(kafkaConnector.kafkaSink[mutable.Map[String, AnyRef]](config.kafkaUniqueTopic))
       .name(config.uniqueEventProducer).uid(config.uniqueEventProducer).setParallelism(config.downstreamOperatorsParallelism)
 
+    addDefaultSinks(uniqueStream, config, kafkaConnector)
     uniqueStream.getSideOutput(config.successTag())
   }
 }
