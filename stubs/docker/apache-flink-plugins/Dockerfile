@@ -1,4 +1,4 @@
-FROM sanketikahub/flink:1.15.2-scala_2.12-jdk-11-source
+FROM sunbird/flink:1.15.2-scala_2.12-jdk-11-source
 USER flink
 RUN mkdir $FLINK_HOME/plugins/s3-fs-presto
 RUN mkdir $FLINK_HOME/plugins/gs-fs-hadoop
