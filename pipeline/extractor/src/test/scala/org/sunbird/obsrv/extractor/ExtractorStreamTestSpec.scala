@@ -140,7 +140,7 @@ class ExtractorStreamTestSpec extends BaseSpecWithDatasetRegistry {
       if(event.ctx.dataset.getOrElse("ALL").equals("ALL"))
         event.ctx.dataset_type should be(None)
       else
-        event.ctx.dataset_type.getOrElse("dataset") should be("dataset")
+        event.ctx.dataset_type should be(Some("dataset"))
     })
 
     //TODO: Add assertions for all 6 events

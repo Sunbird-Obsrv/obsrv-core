@@ -50,7 +50,7 @@ class DynamicRouterFunction(config: DruidRouterConfig) extends BaseDatasetProces
       metrics.incCounter(dataset.id, config.routerSuccessCount)
       markCompletion(dataset, super.markComplete(event, dataset.dataVersion), ctx, Producer.router)
     } else {
-      markFailure(Some(dataset.id), msg, ctx, metrics, ErrorConstants.INDEX_KEY_MISSING_OR_BLANK, Producer.router, FunctionalError.MissingTimestampKey)
+      markFailure(Some(dataset.id), msg, ctx, metrics, ErrorConstants.INDEX_KEY_MISSING_OR_BLANK, Producer.router, FunctionalError.MissingTimestampKey, datasetType = Some(dataset.datasetType))
     }
   }
 
