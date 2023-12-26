@@ -102,7 +102,7 @@ class ExtractorStreamTestSpec extends BaseSpecWithDatasetRegistry {
 
     val config2: Config = ConfigFactory.load("test2.conf")
     val extractorConfig = new ExtractorConfig(config2)
-    extractorConfig.eventMaxSize should be (SystemConfig.maxEventSize)
+    extractorConfig.eventMaxSize should be (SystemConfig.getLong("maxEventSize", 1048576L))
   }
 
   private def validateOutputEvents(outputEvents: List[String]) = {
@@ -140,7 +140,7 @@ class ExtractorStreamTestSpec extends BaseSpecWithDatasetRegistry {
       if(event.ctx.dataset.getOrElse("ALL").equals("ALL"))
         event.ctx.dataset_type should be(None)
       else
-        event.ctx.dataset_type.getOrElse("dataset") should be("dataset")
+        event.ctx.dataset_type should be(Some("dataset"))
     })
 
     //TODO: Add assertions for all 6 events

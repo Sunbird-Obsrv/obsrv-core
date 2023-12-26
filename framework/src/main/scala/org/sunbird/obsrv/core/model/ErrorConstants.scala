@@ -11,7 +11,7 @@ object ErrorConstants extends Enumeration {
   val NO_IMPLEMENTATION_FOUND = ErrorInternalValue("ERR_0001", "Unimplemented method")
   val NO_EXTRACTION_DATA_FOUND = ErrorInternalValue("ERR_EXT_1001", "Unable to extract the data from the extraction key")
   val EXTRACTED_DATA_NOT_A_LIST = ErrorInternalValue("ERR_EXT_1002", "The extracted data is not a list")
-  val EVENT_SIZE_EXCEEDED = ErrorInternalValue("ERR_EXT_1003", ("Event size has exceeded max configured size of " + SystemConfig.maxEventSize))
+  val EVENT_SIZE_EXCEEDED = ErrorInternalValue("ERR_EXT_1003", "Event size has exceeded max configured size")
   val MISSING_DATASET_ID = ErrorInternalValue("ERR_EXT_1004", "Dataset Id is missing from the data")
   val MISSING_DATASET_CONFIGURATION = ErrorInternalValue("ERR_EXT_1005", "Dataset configuration is missing")
   val EVENT_MISSING = ErrorInternalValue("ERR_EXT_1006", "Event missing in the batch event")
@@ -33,5 +33,8 @@ object ErrorConstants extends Enumeration {
   val ERR_UNKNOWN_TRANSFORM_EXCEPTION = ErrorInternalValue("ERR_TRANSFORM_1022", "Unable to evaluate the transformation expression function")
   val ERR_TRANSFORMATION_FAILED = ErrorInternalValue("ERR_TRANSFORM_1023", "Atleast one mandatory transformation has failed")
   val TRANSFORMATION_FIELD_MISSING = ErrorInternalValue("ERR_TRANSFORM_1024", "Transformation field is either missing or blank")
+  val SYSTEM_SETTING_INVALID_TYPE = ErrorInternalValue("ERR_SYSTEM_SETTING_1025", "Invalid value type for system setting")
+  val SYSTEM_SETTING_NOT_FOUND = ErrorInternalValue("ERR_SYSTEM_SETTING_1026", "System setting not found for requested key")
+  val SYSTEM_SETTING_DEFAULT_VALUE_NOT_FOUND = ErrorInternalValue("ERR_SYSTEM_SETTING_1027", "Default value not found for requested key")
 
 }

@@ -21,12 +21,15 @@ class BaseSpecWithDatasetRegistry extends BaseSpecWithPostgres {
   override def beforeAll(): Unit = {
     super.beforeAll()
     val postgresConnect = new PostgresConnect(postgresConfig)
+    createSystemSettings(postgresConnect)
     createSchema(postgresConnect)
     insertTestData(postgresConnect)
     postgresConnect.closeConnection()
   }
 
   override def afterAll(): Unit = {
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    clearSystemSettings(postgresConnect)
     super.afterAll()
   }
 

@@ -120,10 +120,19 @@ class DynamicRouterStreamTaskTestSpec extends BaseSpecWithDatasetRegistry {
 
     systemEvents.foreach(se => {
       val event = JSONUtil.deserialize[SystemEvent](se)
+      val error = event.data.error
       if (event.ctx.dataset.getOrElse("ALL").equals("ALL"))
         event.ctx.dataset_type should be(None)
+      else if (error.isDefined) {
+        val errorCode = error.get.error_code
+        if (errorCode.equals(ErrorConstants.MISSING_DATASET_ID.errorCode) ||
+          errorCode.equals(ErrorConstants.MISSING_DATASET_CONFIGURATION.errorCode) ||
+          errorCode.equals(ErrorConstants.EVENT_MISSING.errorCode)) {
+          event.ctx.dataset_type should be(None)
+        }
+      }
       else
-        event.ctx.dataset_type.getOrElse("dataset") should be("dataset")
+        event.ctx.dataset_type should be(Some("dataset"))
     })
 
     systemEvents.foreach(f => {

@@ -41,16 +41,17 @@ class DynamicRouterFunction(config: DruidRouterConfig) extends BaseDatasetProces
 
     metrics.incCounter(dataset.id, config.routerTotalCount)
     val event = Util.getMutableMap(msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
+    event.put(config.CONST_OBSRV_META, msg(config.CONST_OBSRV_META).asInstanceOf[Map[String, AnyRef]])
     val tsKeyData = TimestampKeyParser.parseTimestampKey(dataset.datasetConfig, event)
+    event.put("indexTS", tsKeyData.value)
     if (tsKeyData.isValid) {
-      event.put(config.CONST_OBSRV_META, msg(config.CONST_OBSRV_META).asInstanceOf[Map[String, AnyRef]] ++ Map("indexTS" -> tsKeyData.value))
       val routerConfig = dataset.routerConfig
       val topicEventMap = mutable.Map(Constants.TOPIC -> routerConfig.topic, Constants.MESSAGE -> event)
       ctx.output(config.routerOutputTag, topicEventMap)
       metrics.incCounter(dataset.id, config.routerSuccessCount)
       markCompletion(dataset, super.markComplete(event, dataset.dataVersion), ctx, Producer.router)
     } else {
-      markFailure(Some(dataset.id), msg, ctx, metrics, ErrorConstants.INDEX_KEY_MISSING_OR_BLANK, Producer.router, FunctionalError.MissingTimestampKey)
+      markFailure(Some(dataset.id), msg, ctx, metrics, ErrorConstants.INDEX_KEY_MISSING_OR_BLANK, Producer.router, FunctionalError.MissingTimestampKey, datasetType = Some(dataset.datasetType))
     }
   }
 

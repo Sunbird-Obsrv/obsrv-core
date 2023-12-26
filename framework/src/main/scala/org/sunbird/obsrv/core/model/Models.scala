@@ -9,6 +9,8 @@ import org.sunbird.obsrv.core.model.ModuleID.ModuleID
 import org.sunbird.obsrv.core.model.PDataType.PDataType
 import org.sunbird.obsrv.core.model.Producer.Producer
 import org.sunbird.obsrv.core.model.StatusCode.StatusCode
+import com.fasterxml.jackson.annotation.JsonProperty
+import org.sunbird.obsrv.core.exception.ObsrvException
 
 object Models {
 
@@ -27,6 +29,8 @@ object Models {
   case class EData(error: Option[ErrorLog] = None, pipeline_stats: Option[PipelineStats] = None, extra: Option[Map[String, AnyRef]] = None)
 
   case class SystemEvent(@JsonScalaEnumeration(classOf[EventIDType]) etype: EventID, ctx: ContextData, data: EData, ets: Long = System.currentTimeMillis())
+  case class SystemSetting(key: String, value: String, category: String, valueType: String, label: Option[String])
+
 }
 
 class EventIDType extends TypeReference[EventID.type]

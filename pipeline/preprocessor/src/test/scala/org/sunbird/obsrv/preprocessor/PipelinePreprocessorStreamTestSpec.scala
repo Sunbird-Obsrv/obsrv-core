@@ -9,6 +9,7 @@ import org.apache.kafka.common.serialization.StringDeserializer
 import org.scalatest.Matchers._
 import org.sunbird.obsrv.BaseMetricsReporter
 import org.sunbird.obsrv.core.cache.RedisConnect
+import org.sunbird.obsrv.core.model.ErrorConstants
 import org.sunbird.obsrv.core.model.Models.SystemEvent
 import org.sunbird.obsrv.core.streaming.FlinkKafkaConnector
 import org.sunbird.obsrv.core.util.{FlinkUtil, JSONUtil, PostgresConnect}
@@ -151,10 +152,19 @@ class PipelinePreprocessorStreamTestSpec extends BaseSpecWithDatasetRegistry {
 
     systemEvents.foreach(se => {
       val event = JSONUtil.deserialize[SystemEvent](se)
+      val error = event.data.error
       if (event.ctx.dataset.getOrElse("ALL").equals("ALL"))
         event.ctx.dataset_type should be(None)
+      else if (error.isDefined) {
+        val errorCode = error.get.error_code
+        if (errorCode.equals(ErrorConstants.MISSING_DATASET_ID.errorCode) ||
+          errorCode.equals(ErrorConstants.MISSING_DATASET_CONFIGURATION.errorCode) ||
+          errorCode.equals(ErrorConstants.EVENT_MISSING.errorCode)) {
+          event.ctx.dataset_type should be(None)
+        }
+      }
       else
-        event.ctx.dataset_type.getOrElse("dataset") should be("dataset")
+        event.ctx.dataset_type should be(Some("dataset"))
     })
     /*
     (SysEvent:,{"etype":"METRIC","ctx":{"module":"processing","pdata":{"id":"PipelinePreprocessorJob","type":"flink","pid":"validator"},"dataset":"d1", "dataset_type": "dataset"},"data":{"error":{"pdata_id":"validator","pdata_status":"failed","error_type":"RequiredFieldsMissing","error_code":"ERR_PP_1013","error_message":"Event failed the schema validation","error_level":"warn","error_count":1}},"ets":1701428460664})

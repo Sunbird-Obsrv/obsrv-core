@@ -14,7 +14,7 @@ import org.apache.flink.test.util.MiniClusterWithClientResource
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.scalatest.Matchers
 import org.sunbird.obsrv.core.streaming._
-import org.sunbird.obsrv.core.util.{FlinkUtil, JSONUtil, Util}
+import org.sunbird.obsrv.core.util.{FlinkUtil, JSONUtil, PostgresConnectionConfig, Util, PostgresConnect}
 
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
@@ -23,14 +23,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-class BaseProcessFunctionTestSpec extends BaseSpec with Matchers {
-
+class BaseProcessFunctionTestSpec extends BaseSpecWithPostgres with Matchers {
   val flinkCluster = new MiniClusterWithClientResource(new MiniClusterResourceConfiguration.Builder()
     .setNumberSlotsPerTaskManager(1)
     .setNumberTaskManagers(1)
     .build)
 
   val config: Config = ConfigFactory.load("base-test.conf")
+  val postgresConfig: PostgresConnectionConfig = PostgresConnectionConfig(
+    config.getString("postgres.user"),
+    config.getString("postgres.password"),
+    config.getString("postgres.database"),
+    config.getString("postgres.host"),
+    config.getInt("postgres.port"),
+    config.getInt("postgres.maxConnections"))
   val bsMapConfig = new BaseProcessTestMapConfig(config)
   val bsConfig = new BaseProcessTestConfig(config)
   val kafkaConnector = new FlinkKafkaConnector(bsConfig)
@@ -51,7 +57,8 @@ class BaseProcessFunctionTestSpec extends BaseSpec with Matchers {
 
   override def beforeAll(): Unit = {
     super.beforeAll()
-
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    createSystemSettings(postgresConnect)
     EmbeddedKafka.start()(embeddedKafkaConfig)
     createTestTopics(bsConfig.testTopics)
 
@@ -65,6 +72,8 @@ class BaseProcessFunctionTestSpec extends BaseSpec with Matchers {
   }
 
   override protected def afterAll(): Unit = {
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    clearSystemSettings(postgresConnect)
     super.afterAll()
     flinkCluster.after()
     EmbeddedKafka.stop()
