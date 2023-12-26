@@ -17,7 +17,7 @@ abstract class BaseJobConfig[T](val config: Config, val jobName: String) extends
 
   implicit val metricTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
-  val defaultDatasetID: String = SystemConfig.defaultDatasetId
+  def defaultDatasetID: String = SystemConfig.getString("defaultDatasetId", "ALL")
   private val kafkaProducerBrokerServers: String = config.getString("kafka.producer.broker-servers")
   private val kafkaConsumerBrokerServers: String = config.getString("kafka.consumer.broker-servers")
   // Producer Properties

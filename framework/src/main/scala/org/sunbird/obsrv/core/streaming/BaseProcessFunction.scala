@@ -56,7 +56,7 @@ case class Metrics(metrics: mutable.Map[String, ConcurrentHashMap[String, Atomic
 trait JobMetrics {
   def registerMetrics(datasets: List[String], metrics: List[String]): Metrics = {
 
-    val allDatasets = datasets ++ List(SystemConfig.defaultDatasetId)
+    val allDatasets = datasets ++ List(SystemConfig.getString("defaultDatasetId", "ALL"))
     val datasetMetricMap: Map[String, ConcurrentHashMap[String, AtomicLong]] = allDatasets.map(dataset => {
       val metricMap = new ConcurrentHashMap[String, AtomicLong]()
       metrics.foreach { metric => metricMap.put(metric, new AtomicLong(0L)) }
@@ -156,10 +156,11 @@ abstract class BaseProcessFunction[T, R](config: BaseJobConfig[R]) extends Proce
           ))
       })
     }
-    getRuntimeContext.getMetricGroup.addGroup(config.jobName).addGroup(SystemConfig.defaultDatasetId)
+    val defaultDatasetId = SystemConfig.getString("defaultDatasetId", "ALL")
+    getRuntimeContext.getMetricGroup.addGroup(config.jobName).addGroup(defaultDatasetId)
       .gauge[Long, ScalaGauge[Long]](config.eventFailedMetricsCount, ScalaGauge[Long](() =>
         // $COVERAGE-OFF$
-        metrics.getAndReset(SystemConfig.defaultDatasetId, config.eventFailedMetricsCount)
+        metrics.getAndReset(defaultDatasetId, config.eventFailedMetricsCount)
         // $COVERAGE-ON$
       ))
   }
@@ -190,10 +191,11 @@ abstract class WindowBaseProcessFunction[I, O, K](config: BaseJobConfig[O]) exte
           ))
       })
     }
-    getRuntimeContext.getMetricGroup.addGroup(config.jobName).addGroup(SystemConfig.defaultDatasetId)
+    val defaultDatasetId = SystemConfig.getString("defaultDatasetId", "ALL")
+    getRuntimeContext.getMetricGroup.addGroup(config.jobName).addGroup(defaultDatasetId)
       .gauge[Long, ScalaGauge[Long]](config.eventFailedMetricsCount, ScalaGauge[Long](() =>
         // $COVERAGE-OFF$
-        metrics.getAndReset(SystemConfig.defaultDatasetId, config.eventFailedMetricsCount)
+        metrics.getAndReset(defaultDatasetId, config.eventFailedMetricsCount)
         // $COVERAGE-ON$
       ))
   }

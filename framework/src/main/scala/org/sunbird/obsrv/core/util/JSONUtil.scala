@@ -17,7 +17,7 @@ object JSONUtil {
     .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
     .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
     .enable(Feature.WRITE_BIGDECIMAL_AS_PLAIN)
-    .build() :: ClassTagExtensions
+    .build()
 
   mapper.setSerializationInclusion(Include.NON_ABSENT)
 

@@ -102,7 +102,7 @@ class ExtractorStreamTestSpec extends BaseSpecWithDatasetRegistry {
 
     val config2: Config = ConfigFactory.load("test2.conf")
     val extractorConfig = new ExtractorConfig(config2)
-    extractorConfig.eventMaxSize should be (SystemConfig.maxEventSize)
+    extractorConfig.eventMaxSize should be (SystemConfig.getLong("maxEventSize", 1048576L))
   }
 
   private def validateOutputEvents(outputEvents: List[String]) = {
