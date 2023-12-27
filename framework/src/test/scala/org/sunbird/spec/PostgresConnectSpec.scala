@@ -34,7 +34,7 @@ class PostgresConnectSpec extends BaseSpecWithPostgres with Matchers with Mockit
       assertEquals("custchannel", rs.getString("channel"))
     }
 
-    val resetConnection = postgresConnect.reset
+    val resetConnection: Unit = postgresConnect.reset()
     assertNotNull(resetConnection)
     postgresConnect.closeConnection()
   }

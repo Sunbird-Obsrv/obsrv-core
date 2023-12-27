@@ -35,6 +35,8 @@ class BaseProcessTestConfig(override val config: Config) extends BaseJobConfig[S
   override def inputConsumer(): String = "testConsumer"
 
   override def successTag(): OutputTag[String] = stringOutputTag
+
+  override def failedEventsOutputTag(): OutputTag[String] = stringOutputTag
 }
 
 class BaseProcessTestMapConfig(override val config: Config) extends BaseJobConfig[Map[String, AnyRef]](config, "Test-job") {
@@ -68,4 +70,6 @@ class BaseProcessTestMapConfig(override val config: Config) extends BaseJobConfi
   override def inputConsumer(): String = "testConsumer"
 
   override def successTag(): OutputTag[Map[String, AnyRef]] = mapOutputTag
+
+  override def failedEventsOutputTag(): OutputTag[Map[String, AnyRef]] = mapOutputTag
 }

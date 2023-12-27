@@ -13,6 +13,8 @@ import org.sunbird.obsrv.router.task.DruidRouterConfig
 
 import scala.collection.mutable
 
+// $COVERAGE-OFF$ Disabling scoverage as the below function is deprecated
+@Deprecated
 class DruidRouterFunction(config: DruidRouterConfig) extends BaseProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]](config) {
 
   private[this] val logger = LoggerFactory.getLogger(classOf[DruidRouterFunction])
@@ -33,18 +35,24 @@ class DruidRouterFunction(config: DruidRouterConfig) extends BaseProcessFunction
   override def processElement(msg: mutable.Map[String, AnyRef],
                               ctx: ProcessFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef]]#Context,
                               metrics: Metrics): Unit = {
+    try {
+      implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
+      val datasetId = msg(config.CONST_DATASET).asInstanceOf[String] // DatasetId cannot be empty at this stage
+      metrics.incCounter(datasetId, config.routerTotalCount)
+      val dataset = DatasetRegistry.getDataset(datasetId).get
+      val event = Util.getMutableMap(msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
+      event.put(config.CONST_OBSRV_META, msg(config.CONST_OBSRV_META))
+      val routerConfig = dataset.routerConfig
+      ctx.output(OutputTag[mutable.Map[String, AnyRef]](routerConfig.topic), event)
+      metrics.incCounter(datasetId, config.routerSuccessCount)
 
-    implicit val mapTypeInfo: TypeInformation[mutable.Map[String, AnyRef]] = TypeExtractor.getForClass(classOf[mutable.Map[String, AnyRef]])
-    val datasetId = msg(config.CONST_DATASET).asInstanceOf[String] // DatasetId cannot be empty at this stage
-    metrics.incCounter(datasetId, config.routerTotalCount)
-    val dataset = DatasetRegistry.getDataset(datasetId).get
-    val event = Util.getMutableMap(msg(config.CONST_EVENT).asInstanceOf[Map[String, AnyRef]])
-    event.put(config.CONST_OBSRV_META, msg(config.CONST_OBSRV_META))
-    val routerConfig = dataset.routerConfig
-    ctx.output(OutputTag[mutable.Map[String, AnyRef]](routerConfig.topic), event)
-    metrics.incCounter(datasetId, config.routerSuccessCount)
-
-    msg.remove(config.CONST_EVENT)
-    ctx.output(config.statsOutputTag, markComplete(msg, dataset.dataVersion))
+      msg.remove(config.CONST_EVENT)
+      ctx.output(config.statsOutputTag, markComplete(msg, dataset.dataVersion))
+    } catch {
+      case ex: Exception =>
+        logger.error("DruidRouterFunction:processElement() - Exception: ", ex.getMessage)
+        ex.printStackTrace()
+    }
   }
 }
+// $COVERAGE-ON$
