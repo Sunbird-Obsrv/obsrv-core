@@ -3,7 +3,9 @@ package org.sunbird.obsrv.core.model
 object ErrorConstants extends Enumeration {
 
   type Error = ErrorValue
+
   case class ErrorValue(errorCode: String, errorMsg: String)
+
   protected final def ErrorInternalValue(errorCode: String, errorMsg: String): ErrorValue = {
     ErrorValue(errorCode, errorMsg)
   }
@@ -26,7 +28,7 @@ object ErrorConstants extends Enumeration {
   val DENORM_KEY_NOT_A_STRING_OR_NUMBER = ErrorInternalValue("ERR_DENORM_1015", "Denorm key value is not a String or Number")
   val DENORM_DATA_NOT_FOUND = ErrorInternalValue("ERR_DENORM_1016", "Denorm data not found for the given key")
   val MISSING_DATASET_CONFIG_KEY = ErrorInternalValue("ERR_MASTER_DATA_1017", "Master dataset configuration key is missing")
-  val ERR_INVALID_EVENT =  ErrorInternalValue("ERR_EXT_1018", "Invalid JSON event, error while deserializing the event")
+  val ERR_INVALID_EVENT = ErrorInternalValue("ERR_EXT_1018", "Invalid JSON event, error while deserializing the event")
   val INDEX_KEY_MISSING_OR_BLANK = ErrorInternalValue("ERR_ROUTER_1019", "Unable to index data as the timestamp key is missing or blank or not a datetime value")
   val INVALID_EXPR_FUNCTION = ErrorInternalValue("ERR_TRANSFORM_1020", "Transformation expression function is not valid")
   val ERR_EVAL_EXPR_FUNCTION = ErrorInternalValue("ERR_TRANSFORM_1021", "Unable to evaluate the transformation expression function")
@@ -36,5 +38,9 @@ object ErrorConstants extends Enumeration {
   val SYSTEM_SETTING_INVALID_TYPE = ErrorInternalValue("ERR_SYSTEM_SETTING_1025", "Invalid value type for system setting")
   val SYSTEM_SETTING_NOT_FOUND = ErrorInternalValue("ERR_SYSTEM_SETTING_1026", "System setting not found for requested key")
   val SYSTEM_SETTING_DEFAULT_VALUE_NOT_FOUND = ErrorInternalValue("ERR_SYSTEM_SETTING_1027", "Default value not found for requested key")
-
+  val HTTP_SERVER_ERR = ErrorInternalValue("ERR_SERVER_CONNECTION_1028", "Connection refused.")
+  val ERR_DATASOURCE_NOT_FOUND = ErrorInternalValue("ERR_MDP_1029", "Datasource not found.")
+  val UNSUPPORTED_PROVIDER = ErrorInternalValue("ERR_UNSUPPORTED_PROVIDER_1030", "Unsupported provider.")
+  val ERR_SUBMIT_INGESTION_FAILED = ErrorInternalValue("ERR_MDP_1031", "Unable to submit ingestion task to druid.")
+  val ERR_DELETE_DATASOURCE_FAILED = ErrorInternalValue("ERR_MDP_1032", "Failed to delete datasource.")
 }
