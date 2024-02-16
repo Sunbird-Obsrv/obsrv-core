@@ -35,7 +35,3 @@ COPY --from=build-pipeline /app/pipeline/pipeline-merged/target/pipeline-merged-
 FROM --platform=linux/x86_64 sanketikahub/flink:1.15.2-scala_2.12-jdk-11 as master-data-processor-image
 USER flink
 COPY --from=build-pipeline /app/pipeline/master-data-processor/target/master-data-processor-1.0.0.jar $FLINK_HOME/lib
-
-FROM --platform=linux/x86_64 sanketikahub/flink:1.15.2-scala_2.12-jdk-11 as kafka-connector-image
-USER flink
-COPY --from=build-pipeline /app/pipeline/kafka-connector/target/kafka-connector-1.0.0.jar $FLINK_HOME/lib

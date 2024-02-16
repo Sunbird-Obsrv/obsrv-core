@@ -1,104 +1,67 @@
-name: Obsrv Core service build and deploy workflow
+name: Build and Deploy
 run-name: Workflow run for ${{ github.ref }}
 on:
   push:
     tags:
-     - '*'
+      - '*'
+  workflow_dispatch:
+    inputs:
+      aws-deploy:
+        type: boolean
+        required: true
+        default: false
 
 jobs:
-  check-tag:
-    runs-on: ubuntu-latest
-    outputs:
-      ALLOWED_TAG: ${{ steps.tag-checker.outputs.TRIGGER_ALLOWED }}
-    steps:
-      - name: Check if tag is one in list of current releases
-        id: tag-checker
-        run: |
-          (echo -n TRIGGER_ALLOWED= && echo 'print("${{ github.ref_name }}".split("_")[0]
-          not in ${{ vars.CURRENT_RELEASE }})' | python3) >> "$GITHUB_OUTPUT"
-
-  docker-build:
-    needs: check-tag
-    if: needs.check-tag.outputs.ALLOWED_TAG ==  'True'
+  build-image:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-       include:
-         - image: "extractor"
-           target: "extractor-image"
-         - image: "preprocessor"
-           target: "preprocessor-image"
-         - image: "denormalizer"
-           target: "denormalizer-image"
-         - image: "transformer"
-           target: "transformer-image"
-         - image: "druid-router"
-           target: "router-image"
-         - image: "merged-pipeline"
-           target: "merged-image"
-         - image: "master-data-processor"
-           target: "master-data-processor-image"
-         - image: "kafka-connector"
-           target: "kafka-connector-image"
-
-
+        include:
+          - image: "extractor"
+            target: "extractor-image"
+          - image: "preprocessor"
+            target: "preprocessor-image"
+          - image: "denormalizer"
+            target: "denormalizer-image"
+          - image: "transformer"
+            target: "transformer-image"
+          - image: "druid-router"
+            target: "router-image"
+          - image: "merged-pipeline"
+            target: "merged-image"
+          - image: "master-data-processor"
+            target: "master-data-processor-image"
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Maven Build
-        run: |
-          mvn clean install -DskipTests
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to docker hub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build merged-pipeline image and push
-        uses: docker/build-push-action@v4
-        with:
-          platforms: linux/amd64
-          target: merged-image
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/merged-pipeline:${{ github.ref_name }}
-      
-      - name: Build merged-pipeline image and push
-        uses: docker/build-push-action@v4
-        with:
-          platforms: linux/amd64
-          target: master-data-processor-image
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/master-data-processor:${{ github.ref_name }}
-      
-      - name: Build merged-pipeline image and push
-        uses: docker/build-push-action@v4
-        with:
-          platforms: linux/amd64
-          target: kafka-connector-image
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/kafka-connector:${{ github.ref_name }}
-
       - name: Build ${{matrix.image}} image and push
-        uses: docker/build-push-action@v4
+        uses: docker/build-push-action@v5
         with:
           platforms: linux/amd64
           target: ${{matrix.target}}
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/${{matrix.image}}:${{ github.ref_name }}
 
+
   aws-deploy:
-    needs: [check-tag, docker-build]
-    if: needs.check-tag.outputs.ALLOWED_TAG ==  'True'
+    needs: build-image
+    if: github.event.inputs.aws-deploy == 'True'
     runs-on: ubuntu-latest
     environment: aws-dev
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
       - name: Setup Terragrunt
         uses: autero1/action-terragrunt@v1.1.0
         with:
@@ -107,12 +70,12 @@ jobs:
         run: terragrunt --version
 
       - name: Clone the terraform deployment repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ${{ vars.DEPLOY_REPO }}
           path: deploy
           ref: ${{ vars.DEPLOY_REPO_REF }}
-      
+
       - name: Fetch and update kubeconfig file
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -136,12 +99,12 @@ jobs:
           -var flink_image_tag=${{ github.ref_name }}
 
   azure-deploy:
-    needs: [check-tag, docker-build]
-    if: needs.check-tag.outputs.ALLOWED_TAG ==  'True' && vars.CLOUD_PROVIDER == 'azure'
+    needs: build-image
+    if: vars.CLOUD_PROVIDER == 'azure'
     runs-on: ubuntu-latest
     steps:
       - name: Clone the terraform deployment repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: ${{ vars.DEPLOY_REPO }}
           path: deploy
