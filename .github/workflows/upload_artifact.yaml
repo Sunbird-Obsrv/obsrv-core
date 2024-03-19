@@ -1,0 +1,85 @@
+name: Upload Artifacts
+run-name: Workflow run for ${{ github.ref }}
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  artifacts-upload-core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get Tag Name
+        id: get-tag
+        run: echo "tag_name=${GITHUB_REF#refs/tags/}" >>$GITHUB_OUTPUT
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JAVA
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Framework Artifacts
+        run: |
+          cd ./framework
+          mvn clean install -DskipTests
+      - name: Upload Framework Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: framework-${{ steps.get-tag.outputs.tag_name }}.jar
+          path: ./framework/target/framework-1.0.0.jar
+          if-no-files-found: error
+
+      - name: Build Dataset Registry Artifacts
+        run: |
+          cd ./dataset-registry
+          mvn clean install -DskipTests
+      - name: Upload Dataset Registry Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dataset-registry-${{ steps.get-tag.outputs.tag_name }}.jar
+          path: ./dataset-registry/target/dataset-registry-1.0.0.jar
+          if-no-files-found: error
+
+  artifacts-upload-pipeline:
+    needs: artifacts-upload-core
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - image: "extractor"
+          - image: "preprocessor"
+          - image: "denormalizer"
+          - image: "transformer"
+          - image: "druid-router"
+          - image: "pipeline-merged"
+          - image: "master-data-processor"
+    steps:
+      - name: Get Tag Name
+        id: get-tag
+        run: echo "tag_name=${GITHUB_REF#refs/tags/}" >>$GITHUB_OUTPUT
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup JAVA
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build Data Pipeline Artifacts
+        run: |
+          cd ./pipeline
+          mvn clean install -DskipTests
+      - name: Upload Data Pipeline Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{matrix.image}}-${{ steps.get-tag.outputs.tag_name }}.jar
+          path: ./pipeline/${{matrix.image}}/target/${{matrix.image}}-1.0.0.jar
+          if-no-files-found: error
