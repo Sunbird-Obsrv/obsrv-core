@@ -1,0 +1,146 @@
+{
+  "mappings": {
+    "properties": {
+      "eid": {
+        "type": "keyword"
+      },
+      "ver": {
+        "type": "keyword"
+      },
+      "syncts": {
+        "type": "date"
+      },
+      "ets": {
+        "type": "date"
+      },
+      "flags": {
+        "type": "nested",
+        "properties": {
+          "summary_denorm_duplicate": {
+            "type": "boolean"
+          }
+        }
+      },
+      "mid": {
+        "type": "keyword"
+      },
+      "tags": {
+        "type": "keyword"
+      },
+      "uid": {
+        "type": "keyword"
+      },
+      "edata": {
+        "type": "nested",
+        "properties": {
+          "eks": {
+            "type": "nested",
+            "properties": {
+              "interact_events_per_min": {
+                "type": "float"
+              },
+              "start_time": {
+                "type": "date"
+              },
+              "interact_events_count": {
+                "type": "integer"
+              },
+              "item_responses": {
+                "type": "nested"
+              },
+              "end_time": {
+                "type": "date"
+              },
+              "events_summary": {
+                "type": "nested"
+              },
+              "page_summary": {
+                "type": "nested"
+              },
+              "time_diff": {
+                "type": "float"
+              },
+              "telemetry_version": {
+                "type": "keyword"
+              },
+              "env_summary": {
+                "type": "nested"
+              },
+              "time_spent": {
+                "type": "float"
+              }
+            }
+          }
+        }
+      },
+      "context": {
+        "type": "nested",
+        "properties": {
+          "pdata": {
+            "type": "nested",
+            "properties": {
+              "id": {
+                "type": "keyword"
+              },
+              "ver": {
+                "type": "keyword"
+              },
+              "model": {
+                "type": "keyword"
+              }
+            }
+          },
+          "granularity": {
+            "type": "keyword"
+          },
+          "date_range": {
+            "type": "nested"
+          },
+          "rollup": {
+            "type": "nested"
+          },
+          "cdata": {
+            "type": "nested"
+          }
+        }
+      },
+      "dimensions": {
+        "type": "nested",
+        "properties": {
+          "did": {
+            "type": "keyword"
+          },
+          "pdata": {
+            "type": "nested",
+            "properties": {
+              "id": {
+                "type": "keyword"
+              },
+              "ver": {
+                "type": "keyword"
+              },
+              "pid": {
+                "type": "keyword"
+              }
+            }
+          },
+          "sid": {
+            "type": "keyword"
+          },
+          "channel": {
+            "type": "keyword"
+          },
+          "type": {
+            "type": "keyword"
+          },
+          "mode": {
+            "type": "keyword"
+          }
+        }
+      },
+      "object": {
+        "type": "nested"
+      }
+    }
+  }
+}
