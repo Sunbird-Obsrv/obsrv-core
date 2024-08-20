@@ -22,6 +22,7 @@ CREATE INDEX IF NOT EXISTS datasets_status ON datasets(status);
 CREATE TABLE IF NOT EXISTS datasources (
     datasource text PRIMARY KEY,
     dataset_id text REFERENCES datasets (id),
+    type text NOT NULL,
     ingestion_spec json NOT NULL,
     datasource_ref text NOT NULL,
     retention_period json,

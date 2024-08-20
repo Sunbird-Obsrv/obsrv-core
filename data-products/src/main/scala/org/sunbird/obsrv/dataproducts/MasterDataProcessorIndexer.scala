@@ -27,8 +27,8 @@ object MasterDataProcessorIndexer {
       val ingestionSpec: String = updateIngestionSpec(datasource, paths.datasourceRef, paths.ingestionPath, config)
       if (eventsCount > 0L) {
         submitIngestionTask(dataset.id, ingestionSpec, config)
+        DatasetRegistry.updateDatasourceRef(datasource, paths.datasourceRef)
       }
-      DatasetRegistry.updateDatasourceRef(datasource, paths.datasourceRef)
       if (!datasource.datasourceRef.equals(paths.datasourceRef)) {
         deleteDataSource(dataset.id, datasource.datasourceRef, config)
       }

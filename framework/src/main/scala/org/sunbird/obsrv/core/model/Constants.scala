@@ -5,6 +5,7 @@ object Constants {
   val EVENT = "event"
   val INVALID_JSON = "invalid_json"
   val OBSRV_META = "obsrv_meta"
+  val PROCESSING_START_TIME = "processingStartTime"
   val SRC = "src"
   val ERROR_CODE = "error_code"
   val ERROR_MSG = "error_msg"
@@ -14,5 +15,6 @@ object Constants {
   val LEVEL = "level"
   val TOPIC = "topic"
   val MESSAGE = "message"
-
+  val DATALAKE_TYPE = "datalake"
+  val MASTER_DATASET_TYPE = "master-dataset"
 }

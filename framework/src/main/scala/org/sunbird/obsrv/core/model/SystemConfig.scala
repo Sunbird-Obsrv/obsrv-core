@@ -6,7 +6,7 @@ import org.sunbird.obsrv.core.model.Models.SystemSetting
 import org.sunbird.obsrv.core.util.{PostgresConnect, PostgresConnectionConfig}
 
 import java.io.File
-import java.sql.ResultSet
+import java.sql.{PreparedStatement, ResultSet}
 
 object SystemConfig {
 
@@ -102,10 +102,17 @@ object SystemConfigService {
   @throws[Exception]
   def getSystemSetting(key: String): Option[SystemSetting] = {
     val postgresConnect = new PostgresConnect(postgresConfig)
+    var preparedStatement: PreparedStatement = null
+    var rs: ResultSet = null
+    val query = "SELECT * FROM system_settings WHERE key = ?"
+    preparedStatement = postgresConnect.prepareStatement(query)
+    preparedStatement.setString(1, key)
     try {
-      val rs = postgresConnect.executeQuery(s"SELECT * FROM system_settings WHERE key = '$key'")
+      rs = postgresConnect.executeQuery(preparedStatement = preparedStatement)
       if (rs.next) Option(parseSystemSetting(rs)) else None
     } finally {
+      if (rs != null) rs.close()
+      if (preparedStatement != null) preparedStatement.close()
       postgresConnect.closeConnection()
     }
   }

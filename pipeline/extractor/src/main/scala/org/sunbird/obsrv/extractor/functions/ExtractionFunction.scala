@@ -46,6 +46,7 @@ class ExtractionFunction(config: ExtractorConfig)
       context.output(config.systemEventsOutputTag, failedSystemEvent(Some(config.defaultDatasetID), ErrorConstants.ERR_INVALID_EVENT, FunctionalError.InvalidJsonData))
       return
     }
+    addStartProcessingTimeIfMissing(batchEvent)
     val eventAsText = JSONUtil.serialize(batchEvent)
     val datasetIdOpt = batchEvent.get(config.CONST_DATASET)
     if (datasetIdOpt.isEmpty) {
@@ -76,6 +77,13 @@ class ExtractionFunction(config: ExtractorConfig)
       extractData(dataset, batchEvent, eventAsText, context, metrics)
     } else {
       skipExtraction(dataset, batchEvent, context, metrics)
+    }
+  }
+
+  private def addStartProcessingTimeIfMissing(batchEvent: mutable.Map[String, AnyRef]): Unit = {
+    val obsrvMeta = batchEvent(Constants.OBSRV_META).asInstanceOf[Map[String, AnyRef]]
+    if(!obsrvMeta.contains(Constants.PROCESSING_START_TIME)) {
+      batchEvent.put(Constants.OBSRV_META, obsrvMeta ++ Map("processingStartTime" -> System.currentTimeMillis()))
     }
   }
 

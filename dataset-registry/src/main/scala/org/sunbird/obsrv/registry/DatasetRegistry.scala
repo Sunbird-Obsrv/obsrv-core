@@ -8,9 +8,9 @@ import scala.collection.mutable
 
 object DatasetRegistry {
 
-  private val datasets: mutable.Map[String, Dataset] = mutable.Map[String, Dataset]()
+  lazy private val datasets: mutable.Map[String, Dataset] = mutable.Map[String, Dataset]()
   datasets ++= DatasetRegistryService.readAllDatasets()
-  private val datasetTransformations: Map[String, List[DatasetTransformation]] = DatasetRegistryService.readAllDatasetTransformations()
+  lazy private val datasetTransformations: Map[String, List[DatasetTransformation]] = DatasetRegistryService.readAllDatasetTransformations()
 
   def getAllDatasets(datasetType: String): List[Dataset] = {
     val datasetList = DatasetRegistryService.readAllDatasets()
@@ -40,6 +40,11 @@ object DatasetRegistry {
 
   def getDatasources(datasetId: String): Option[List[DataSource]] = {
     DatasetRegistryService.readDatasources(datasetId)
+  }
+
+  def getAllDatasources(): List[DataSource] = {
+    val datasourceList = DatasetRegistryService.readAllDatasources()
+    datasourceList.getOrElse(List())
   }
 
   def getDataSetIds(datasetType: String): List[String] = {

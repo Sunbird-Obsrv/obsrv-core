@@ -79,7 +79,7 @@ class DenormCache(val config: DenormalizerConfig) {
     if (denormFieldNode.isMissingNode) {
       DenormFieldStatus("", success = false, Some(ErrorConstants.DENORM_KEY_MISSING))
     } else {
-      if (denormFieldNode.isTextual || denormFieldNode.isNumber) {
+      if ((denormFieldNode.isTextual && denormFieldNode.asText().nonEmpty) || denormFieldNode.isNumber) {
         DenormFieldStatus(denormFieldNode.asText(), success = false, None)
       } else {
         DenormFieldStatus("", success = false, Some(ErrorConstants.DENORM_KEY_NOT_A_STRING_OR_NUMBER))

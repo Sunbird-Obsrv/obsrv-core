@@ -92,8 +92,8 @@ class TestDatasetRegistrySpec extends BaseSpecWithDatasetRegistry with Matchers 
     postgresConnect.execute("insert into dataset_source_config values('sc1', 'd1', 'kafka', '{\"kafkaBrokers\":\"localhost:9090\",\"topic\":\"test-topic\"}', 'Live', null, 'System', 'System', now(), now());")
     postgresConnect.execute("insert into dataset_source_config values('sc2', 'd1',  'rdbms', '{\"type\":\"postgres\",\"tableName\":\"test-table\"}', 'Live', null, 'System', 'System', now(), now());")
 
-    //postgresConnect.execute("CREATE TABLE IF NOT EXISTS datasources ( id text PRIMARY KEY, dataset_id text REFERENCES datasets (id), ingestion_spec json NOT NULL, datasource text NOT NULL, datasource_ref text NOT NULL, retention_period json, archival_policy json, purge_policy json, backup_config json NOT NULL, status text NOT NULL, created_by text NOT NULL, updated_by text NOT NULL, created_date Date NOT NULL, updated_date Date NOT NULL );")
-    postgresConnect.execute("insert into datasources values('ds1', 'd1',  '{}', 'd1-datasource', 'd1-datasource-1', null, null, null, '{}', 'Live', 'System', 'System', now(), now());")
+    //postgresConnect.execute("CREATE TABLE IF NOT EXISTS datasources ( id text PRIMARY KEY, dataset_id text REFERENCES datasets (id), type text NOT NULL, ingestion_spec json NOT NULL, datasource text NOT NULL, datasource_ref text NOT NULL, retention_period json, archival_policy json, purge_policy json, backup_config json NOT NULL, status text NOT NULL, created_by text NOT NULL, updated_by text NOT NULL, created_date Date NOT NULL, updated_date Date NOT NULL );")
+    postgresConnect.execute("insert into datasources values('ds1', 'd1', 'druid', '{}', 'd1-datasource', 'd1-datasource-1', null, null, null, '{}', 'Live', 'System', 'System', now(), now());")
     postgresConnect.closeConnection()
   }
 }

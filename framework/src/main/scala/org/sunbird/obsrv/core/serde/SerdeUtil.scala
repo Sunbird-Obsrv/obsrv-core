@@ -7,6 +7,7 @@ import org.apache.flink.connector.kafka.source.reader.deserializer.KafkaRecordDe
 import org.apache.flink.util.Collector
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.model.Constants
 import org.sunbird.obsrv.core.util.JSONUtil
 
@@ -48,11 +49,17 @@ class MapDeserializationSchema extends KafkaRecordDeserializationSchema[mutable.
 class StringDeserializationSchema extends KafkaRecordDeserializationSchema[String] {
 
   private val serialVersionUID = -3224825136576915426L
+  private[this] val logger = LoggerFactory.getLogger(classOf[StringDeserializationSchema])
 
   override def getProducedType: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
   override def deserialize(record: ConsumerRecord[Array[Byte], Array[Byte]], out: Collector[String]): Unit = {
-    out.collect(new String(record.value(), StandardCharsets.UTF_8))
+    try {
+      out.collect(new String(record.value(), StandardCharsets.UTF_8))
+    } catch {
+      case ex: NullPointerException =>
+        logger.error(s"Exception while parsing the message: ${ex.getMessage}")
+    }
   }
 }
 

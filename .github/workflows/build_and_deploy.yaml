@@ -31,6 +31,8 @@ jobs:
             target: "merged-image"
           - image: "master-data-processor"
             target: "master-data-processor-image"
+          - image: "lakehouse-connector"
+            target: "lakehouse-connector-image"
     steps:
       - uses: actions/checkout@v4
         with:
