@@ -28,11 +28,11 @@ trait SystemEventHandler {
   }
 
   private def getTime(timespans: Map[String, AnyRef], producer: Producer): Option[Long] = {
-    timespans.get(producer.toString).map(f => f.asInstanceOf[Long])
+    timespans.get(producer.toString).map(f => f.asInstanceOf[Number].longValue())
   }
 
   private def getStat(obsrvMeta: Map[String, AnyRef], stat: Stats): Option[Long] = {
-    obsrvMeta.get(stat.toString).map(f => f.asInstanceOf[Long])
+    obsrvMeta.get(stat.toString).map(f => f.asInstanceOf[Number].longValue())
   }
 
   def getError(error: ErrorConstants.Error, producer: Producer, functionalError: FunctionalError): Option[ErrorLog] = {

@@ -1,9 +1,10 @@
 package org.sunbird.obsrv.util
 
 import org.json4s.native.JsonMethods._
-import org.json4s.{JNothing, JValue}
+import org.json4s.{JField, JNothing, JValue}
 import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.cache.RedisConnect
+import org.sunbird.obsrv.core.model.Constants.OBSRV_META
 import org.sunbird.obsrv.model.DatasetModels.Dataset
 import org.sunbird.obsrv.pipeline.task.CacheIndexerConfig
 import redis.clients.jedis.Jedis
@@ -37,7 +38,11 @@ class MasterDataCache(val config: CacheIndexerConfig) {
   def process(dataset: Dataset, key: String, event: JValue): (Int, Int) = {
     val jedis = this.datasetPipelineMap(dataset.id)
     val dataFromCache = getDataFromCache(dataset, key, jedis)
-    updateCache(dataset, dataFromCache, key, event, jedis)
+    val updatedEvent = event.removeField {
+      case JField(OBSRV_META, _) => true
+      case _ => false
+    }
+    updateCache(dataset, dataFromCache, key, updatedEvent, jedis)
     (if (dataFromCache == null) 1 else 0, if (dataFromCache == null) 0 else 1)
   }
 

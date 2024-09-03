@@ -47,6 +47,15 @@ class FlinkKafkaConnector(config: BaseJobConfig[_]) extends Serializable {
       .build()
   }
 
+  def kafkaTopicMapSource(kafkaTopics: List[String]): KafkaSource[mutable.Map[String, AnyRef]] = {
+    KafkaSource.builder[mutable.Map[String, AnyRef]]()
+      .setTopics(kafkaTopics.asJava)
+      .setDeserializer(new TopicDeserializationSchema)
+      .setProperties(config.kafkaConsumerProperties())
+      .setStartingOffsets(OffsetsInitializer.committedOffsets(OffsetResetStrategy.EARLIEST))
+      .build()
+  }
+
   def kafkaMapDynamicSink(): KafkaSink[mutable.Map[String, AnyRef]] = {
     KafkaSink.builder[mutable.Map[String, AnyRef]]()
       .setDeliverGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)

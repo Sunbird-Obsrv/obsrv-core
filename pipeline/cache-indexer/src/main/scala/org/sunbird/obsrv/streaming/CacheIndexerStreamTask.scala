@@ -32,7 +32,7 @@ class CacheIndexerStreamTask(config: CacheIndexerConfig, kafkaConnector: FlinkKa
 
     val datasets = DatasetRegistry.getAllDatasets(Some(DatasetType.master.toString))
     val datasetIds = datasets.map(f => f.id)
-    val dataStream = getMapDataStream(env, config, datasetIds, config.kafkaConsumerProperties(), consumerSourceName = s"cache-indexer-consumer", kafkaConnector)
+    val dataStream = getTopicMapDataStream(env, config, datasetIds, consumerSourceName = s"cache-indexer-consumer", kafkaConnector)
     processStream(dataStream)
   }
 
