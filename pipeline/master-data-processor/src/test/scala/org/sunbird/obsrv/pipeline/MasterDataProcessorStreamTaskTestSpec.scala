@@ -59,6 +59,7 @@ class MasterDataProcessorStreamTaskTestSpec extends BaseSpecWithDatasetRegistry 
     EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.VALID_BATCH_EVENT_D3_INSERT_2)
     EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.VALID_BATCH_EVENT_D4)
     EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.VALID_BATCH_EVENT_D3_UPDATE)
+    EmbeddedKafka.publishStringMessageToKafka(config.getString("kafka.input.topic"), EventFixture.MISSING_DATA_KEY_EVENT_D4)
     flinkCluster.before()
   }
 
@@ -134,6 +135,9 @@ class MasterDataProcessorStreamTaskTestSpec extends BaseSpecWithDatasetRegistry 
     mutableMetricsMap(s"${masterDataConfig.jobName}.d4.${masterDataConfig.successEventCount}") should be(1)
     mutableMetricsMap(s"${masterDataConfig.jobName}.d4.${masterDataConfig.successInsertCount}") should be(1)
     mutableMetricsMap(s"${masterDataConfig.jobName}.d4.${masterDataConfig.successUpdateCount}") should be(0)
+
+    mutableMetricsMap(s"${masterDataConfig.jobName}.d5.${masterDataConfig.totalEventCount}") should be(1)
+    mutableMetricsMap(s"${masterDataConfig.jobName}.d5.${masterDataConfig.eventFailedMetricsCount}") should be(1)
 
     val redisConnection = new RedisConnect(masterDataConfig.redisHost, masterDataConfig.redisPort, masterDataConfig.redisConnectionTimeout)
     val jedis1 = redisConnection.getConnection(3)

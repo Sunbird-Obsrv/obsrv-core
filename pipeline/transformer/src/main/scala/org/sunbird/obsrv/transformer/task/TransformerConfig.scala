@@ -34,7 +34,7 @@ class TransformerConfig(override val config: Config) extends BaseJobConfig[mutab
   val transformerOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](TRANSFORMER_EVENTS)
   val transformerFailedOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](TRANSFORMER_FAILED_EVENTS)
 
-  override def inputTopic(): String = kafkaInputTopic
+  override def inputTopic(): String = config.getString("kafka.input.topic")
 
   override def inputConsumer(): String = "transformer-consumer"
 

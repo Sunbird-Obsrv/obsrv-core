@@ -56,8 +56,29 @@ object DatasetRegistryService {
     }
   }
 
-  def readAllDatasetSourceConfig(): Option[List[DatasetSourceConfig]] = {
+  def readDataset(id: String): Option[Dataset] = {
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    var preparedStatement: PreparedStatement = null
+    var resultSet: ResultSet = null
+    try {
+      val query = "SELECT * FROM datasets WHERE id = ?"
+      preparedStatement = postgresConnect.prepareStatement(query)
+      preparedStatement.setString(1, id)
+      resultSet = postgresConnect.executeQuery(preparedStatement = preparedStatement)
+      if (resultSet.next()) {
+        Some(parseDataset(resultSet))
+      } else {
+        None
+      }
+    } finally {
+      if (resultSet != null) resultSet.close()
+      if (preparedStatement != null) preparedStatement.close()
+      postgresConnect.closeConnection()
+    }
+  }
 
+
+  def readAllDatasetSourceConfig(): Option[List[DatasetSourceConfig]] = {
     val postgresConnect = new PostgresConnect(postgresConfig)
     try {
       val rs = postgresConnect.executeQuery("SELECT * FROM dataset_source_config")
@@ -80,6 +101,27 @@ object DatasetRegistryService {
         datasetSourceConfig
       }).toList)
     } finally {
+      postgresConnect.closeConnection()
+    }
+  }
+
+
+  def readDatasetSourceConfig(datasetId: String): Option[List[DatasetSourceConfig]] = {
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    var preparedStatement: PreparedStatement = null
+    var resultSet: ResultSet = null
+    try {
+      val query = "SELECT * FROM dataset_source_config WHERE dataset_id = ?"
+      preparedStatement = postgresConnect.prepareStatement(query)
+      preparedStatement.setString(1, datasetId)
+      resultSet = postgresConnect.executeQuery(preparedStatement = preparedStatement)
+      Option(Iterator.continually((resultSet, resultSet.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
+        val datasetSourceConfig = parseDatasetSourceConfig(result)
+        datasetSourceConfig
+      }).toList)
+    } finally {
+      if (resultSet != null) resultSet.close()
+      if (preparedStatement != null) preparedStatement.close()
       postgresConnect.closeConnection()
     }
   }
@@ -114,12 +156,32 @@ object DatasetRegistryService {
   def readAllDatasources(): Option[List[DataSource]] = {
 
     val postgresConnect = new PostgresConnect(postgresConfig)
+    var preparedStatement: PreparedStatement = null
+    val query = "UPDATE datasources SET datasource_ref = ? WHERE datasource = ? AND dataset_id = ?"
     try {
       val rs = postgresConnect.executeQuery(s"SELECT * FROM datasources")
       Option(Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
         parseDatasource(result)
       }).toList)
     } finally {
+      if (preparedStatement != null) preparedStatement.close()
+      postgresConnect.closeConnection()
+    }
+  }
+  
+  def updateConnectorStats(id: String, lastFetchTimestamp: Timestamp, records: Long): Int = {
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    var preparedStatement: PreparedStatement = null
+    val query = "UPDATE dataset_source_config SET connector_stats = COALESCE(connector_stats, '{}')::jsonb || jsonb_build_object('records', COALESCE(connector_stats->>'records', '0')::int + ? ::int) || jsonb_build_object('last_fetch_timestamp', ? ::timestamp) || jsonb_build_object('last_run_timestamp', ? ::timestamp) WHERE id = ?;"
+    try {
+      preparedStatement = postgresConnect.prepareStatement(query)
+      preparedStatement.setString(1, records.toString)
+      preparedStatement.setTimestamp(2, lastFetchTimestamp)
+      preparedStatement.setTimestamp(3, new Timestamp(System.currentTimeMillis()))
+      preparedStatement.setString(4, id)
+      postgresConnect.executeUpdate(preparedStatement)
+    } finally {
+      if (preparedStatement != null) preparedStatement.close()
       postgresConnect.closeConnection()
     }
   }
@@ -152,6 +214,36 @@ object DatasetRegistryService {
     try {
       postgresConnect.executeUpdate(query)
     } finally {
+      postgresConnect.closeConnection()
+    }
+  }
+
+  def updateConnectorDisconnections(id: String, disconnections: Int): Int = {
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    var preparedStatement: PreparedStatement = null
+    val query = "UPDATE dataset_source_config SET connector_stats = jsonb_set(coalesce(connector_stats, '{}')::jsonb, '{disconnections}', to_jsonb(?)) WHERE id = ?"
+    try {
+      preparedStatement = postgresConnect.prepareStatement(query)
+      preparedStatement.setInt(1, disconnections)
+      preparedStatement.setString(2, id)
+      postgresConnect.executeUpdate(preparedStatement)
+    } finally {
+      if (preparedStatement != null) preparedStatement.close()
+      postgresConnect.closeConnection()
+    }
+  }
+
+  def updateConnectorAvgBatchReadTime(id: String, avgReadTime: Long): Int = {
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    var preparedStatement: PreparedStatement = null
+    val query = "UPDATE dataset_source_config SET connector_stats = jsonb_set(coalesce(connector_stats, '{}')::jsonb, '{avg_batch_read_time}', to_jsonb(?)) WHERE id = ?"
+    try {
+      preparedStatement = postgresConnect.prepareStatement(query)
+      preparedStatement.setLong(1, avgReadTime)
+      preparedStatement.setString(2, id)
+      postgresConnect.executeUpdate(preparedStatement)
+    } finally {
+      if (preparedStatement != null) preparedStatement.close()
       postgresConnect.closeConnection()
     }
   }

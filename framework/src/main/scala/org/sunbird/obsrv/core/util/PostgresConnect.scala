@@ -3,7 +3,7 @@ package org.sunbird.obsrv.core.util
 import org.postgresql.ds.PGSimpleDataSource
 import org.slf4j.LoggerFactory
 
-import java.sql.{Connection, ResultSet, SQLException, Statement}
+import java.sql.{Connection, PreparedStatement, ResultSet, SQLException, Statement}
 
 final case class PostgresConnectionConfig(user: String, password: String, database: String, host: String, port: Int, maxConnections: Int)
 

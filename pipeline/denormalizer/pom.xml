@@ -43,6 +43,18 @@
             <version>1.0.0</version>
         </dependency>
         <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka_${scala.maj.version}</artifactId>
+            <version>${kafka.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.sunbird.obsrv</groupId>
             <artifactId>transformation-sdk</artifactId>
             <version>1.0.0</version>
