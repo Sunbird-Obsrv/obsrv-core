@@ -12,9 +12,14 @@ object DatasetRegistry {
   datasets ++= DatasetRegistryService.readAllDatasets()
   lazy private val datasetTransformations: Map[String, List[DatasetTransformation]] = DatasetRegistryService.readAllDatasetTransformations()
 
-  def getAllDatasets(datasetType: String): List[Dataset] = {
+  def getAllDatasets(datasetType: Option[String]): List[Dataset] = {
     val datasetList = DatasetRegistryService.readAllDatasets()
-    datasetList.filter(f => f._2.datasetType.equals(datasetType)).values.toList
+    if(datasetType.isDefined) {
+      datasetList.filter(f => f._2.datasetType.equals(datasetType.get)).values.toList
+    } else {
+      datasetList.values.toList
+    }
+
   }
 
   def getDataset(id: String): Option[Dataset] = {
@@ -47,8 +52,8 @@ object DatasetRegistry {
     datasourceList.getOrElse(List())
   }
 
-  def getDataSetIds(datasetType: String): List[String] = {
-    datasets.filter(f => f._2.datasetType.equals(datasetType)).keySet.toList
+  def getDataSetIds(): List[String] = {
+    datasets.keySet.toList
   }
 
   def updateDatasourceRef(datasource: DataSource, datasourceRef: String): Int = {

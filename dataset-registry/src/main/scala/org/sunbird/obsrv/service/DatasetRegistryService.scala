@@ -6,7 +6,7 @@ import org.sunbird.obsrv.model.DatasetModels._
 import org.sunbird.obsrv.model.{DatasetStatus, TransformMode}
 
 import java.io.File
-import java.sql.{PreparedStatement, ResultSet, Timestamp}
+import java.sql.{ResultSet, Timestamp}
 
 object DatasetRegistryService {
   private val configFile = new File("/data/flink/conf/baseconfig.conf")
@@ -42,6 +42,21 @@ object DatasetRegistryService {
   }
 
   def readDataset(id: String): Option[Dataset] = {
+
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    try {
+      val rs = postgresConnect.executeQuery(s"SELECT * FROM datasets where id='$id'")
+      if (rs.next()) {
+        Some(parseDataset(rs))
+      } else {
+        None
+      }
+    } finally {
+      postgresConnect.closeConnection()
+    }
+  }
+
+  def readDataset(id: String): Option[Dataset] = {
     val postgresConnect = new PostgresConnect(postgresConfig)
     var preparedStatement: PreparedStatement = null
     var resultSet: ResultSet = null
@@ -67,6 +82,20 @@ object DatasetRegistryService {
     val postgresConnect = new PostgresConnect(postgresConfig)
     try {
       val rs = postgresConnect.executeQuery("SELECT * FROM dataset_source_config")
+      Option(Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
+        val datasetSourceConfig = parseDatasetSourceConfig(result)
+        datasetSourceConfig
+      }).toList)
+    } finally {
+      postgresConnect.closeConnection()
+    }
+  }
+
+  def readDatasetSourceConfig(datasetId: String): Option[List[DatasetSourceConfig]] = {
+
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    try {
+      val rs = postgresConnect.executeQuery(s"SELECT * FROM dataset_source_config where dataset_id='$datasetId'")
       Option(Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
         val datasetSourceConfig = parseDatasetSourceConfig(result)
         datasetSourceConfig
@@ -112,20 +141,14 @@ object DatasetRegistryService {
   }
 
   def readDatasources(datasetId: String): Option[List[DataSource]] = {
+
     val postgresConnect = new PostgresConnect(postgresConfig)
-    var preparedStatement: PreparedStatement = null
-    var resultSet: ResultSet = null
     try {
-      val query = "SELECT * FROM datasources WHERE dataset_id = ?"
-      preparedStatement = postgresConnect.prepareStatement(query)
-      preparedStatement.setString(1, datasetId)
-      resultSet = postgresConnect.executeQuery(preparedStatement = preparedStatement)
-      Option(Iterator.continually((resultSet, resultSet.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
+      val rs = postgresConnect.executeQuery(s"SELECT * FROM datasources where dataset_id='$datasetId'")
+      Option(Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
         parseDatasource(result)
       }).toList)
     } finally {
-      if (resultSet != null) resultSet.close()
-      if (preparedStatement != null) preparedStatement.close()
       postgresConnect.closeConnection()
     }
   }
@@ -133,24 +156,13 @@ object DatasetRegistryService {
   def readAllDatasources(): Option[List[DataSource]] = {
 
     val postgresConnect = new PostgresConnect(postgresConfig)
+    var preparedStatement: PreparedStatement = null
+    val query = "UPDATE datasources SET datasource_ref = ? WHERE datasource = ? AND dataset_id = ?"
     try {
       val rs = postgresConnect.executeQuery(s"SELECT * FROM datasources")
       Option(Iterator.continually((rs, rs.next)).takeWhile(f => f._2).map(f => f._1).map(result => {
         parseDatasource(result)
       }).toList)
-    }
-  }
-
-  def updateDatasourceRef(datasource: DataSource, datasourceRef: String): Int = {
-    val postgresConnect = new PostgresConnect(postgresConfig)
-    var preparedStatement: PreparedStatement = null
-    val query = "UPDATE datasources SET datasource_ref = ? WHERE datasource = ? AND dataset_id = ?"
-    try {
-      preparedStatement = postgresConnect.prepareStatement(query)
-      preparedStatement.setString(1, datasourceRef)
-      preparedStatement.setString(2, datasource.datasource)
-      preparedStatement.setString(3, datasource.datasetId)
-      postgresConnect.executeUpdate(preparedStatement)
     } finally {
       if (preparedStatement != null) preparedStatement.close()
       postgresConnect.closeConnection()
@@ -174,6 +186,37 @@ object DatasetRegistryService {
     }
   }
 
+  def updateDatasourceRef(datasource: DataSource, datasourceRef: String): Int = {
+    val query = s"UPDATE datasources set datasource_ref = '$datasourceRef' where datasource='${datasource.datasource}' and dataset_id='${datasource.datasetId}'"
+    updateRegistry(query)
+  }
+
+  def updateConnectorStats(id: String, lastFetchTimestamp: Timestamp, records: Long): Int = {
+    val query = s"UPDATE dataset_source_config SET connector_stats = coalesce(connector_stats, '{}')::jsonb || " +
+      s"jsonb_build_object('records', COALESCE(connector_stats->>'records', '0')::int + '$records'::int)  || " +
+      s"jsonb_build_object('last_fetch_timestamp', '$lastFetchTimestamp'::timestamp) || " +
+      s"jsonb_build_object('last_run_timestamp', '${new Timestamp(System.currentTimeMillis())}'::timestamp) WHERE id = '$id';"
+    updateRegistry(query)
+  }
+
+  def updateConnectorDisconnections(id: String, disconnections: Int): Int = {
+    val query = s"UPDATE dataset_source_config SET connector_stats = jsonb_set(coalesce(connector_stats, '{}')::jsonb, '{disconnections}','$disconnections') WHERE id = '$id'"
+    updateRegistry(query)
+  }
+
+  def updateConnectorAvgBatchReadTime(id: String, avgReadTime: Long): Int = {
+    val query = s"UPDATE dataset_source_config SET connector_stats = jsonb_set(coalesce(connector_stats, '{}')::jsonb, '{avg_batch_read_time}','$avgReadTime') WHERE id = '$id'"
+    updateRegistry(query)
+  }
+
+  private def updateRegistry(query: String): Int = {
+    val postgresConnect = new PostgresConnect(postgresConfig)
+    try {
+      postgresConnect.executeUpdate(query)
+    } finally {
+      postgresConnect.closeConnection()
+    }
+  }
 
   def updateConnectorDisconnections(id: String, disconnections: Int): Int = {
     val postgresConnect = new PostgresConnect(postgresConfig)
@@ -214,11 +257,25 @@ object DatasetRegistryService {
     val jsonSchema = rs.getString("data_schema")
     val denormConfig = rs.getString("denorm_config")
     val routerConfig = rs.getString("router_config")
-    val datasetConfig = rs.getString("dataset_config")
+    val datasetConfigStr = rs.getString("dataset_config")
     val status = rs.getString("status")
     val tagArray = rs.getArray("tags")
     val tags = if (tagArray != null) tagArray.getArray.asInstanceOf[Array[String]] else null
     val dataVersion = rs.getInt("data_version")
+    val apiVersion = rs.getString("api_version")
+    val entryTopic = rs.getString("entry_topic")
+
+    val datasetConfig: DatasetConfig = if ("v2".equalsIgnoreCase(apiVersion)) {
+      JSONUtil.deserialize[DatasetConfig](datasetConfigStr)
+    } else {
+      val v1Config = JSONUtil.deserialize[DatasetConfigV1](datasetConfigStr)
+      DatasetConfig(
+        indexingConfig = IndexingConfig(olapStoreEnabled = true, lakehouseEnabled = false, cacheEnabled = if ("master".equalsIgnoreCase(datasetType)) true else false),
+        keysConfig = KeysConfig(dataKey = Some(v1Config.key), None, tsKey = Some(v1Config.tsKey), None),
+        excludeFields = v1Config.excludeFields, datasetTimezone = v1Config.datasetTimezone,
+        cacheConfig = Some(CacheConfig(redisDBHost = v1Config.redisDBHost, redisDBPort = v1Config.redisDBPort, redisDB = v1Config.redisDB))
+      )
+    }
 
     Dataset(datasetId, datasetType,
       if (extractionConfig == null) None else Some(JSONUtil.deserialize[ExtractionConfig](extractionConfig)),
@@ -227,10 +284,12 @@ object DatasetRegistryService {
       Option(jsonSchema),
       if (denormConfig == null) None else Some(JSONUtil.deserialize[DenormConfig](denormConfig)),
       JSONUtil.deserialize[RouterConfig](routerConfig),
-      JSONUtil.deserialize[DatasetConfig](datasetConfig),
+      datasetConfig,
       DatasetStatus.withName(status),
+      entryTopic,
       Option(tags),
-      Option(dataVersion)
+      Option(dataVersion),
+      Option(apiVersion)
     )
   }
 
@@ -265,10 +324,9 @@ object DatasetRegistryService {
     val datasetId = rs.getString("dataset_id")
     val fieldKey = rs.getString("field_key")
     val transformationFunction = rs.getString("transformation_function")
-    val status = rs.getString("status")
     val mode = rs.getString("mode")
 
-    DatasetTransformation(id, datasetId, fieldKey, JSONUtil.deserialize[TransformationFunction](transformationFunction), status, Some(if (mode != null) TransformMode.withName(mode) else TransformMode.Strict))
+    DatasetTransformation(id, datasetId, fieldKey, JSONUtil.deserialize[TransformationFunction](transformationFunction), Some(if (mode != null) TransformMode.withName(mode) else TransformMode.Strict))
   }
 
 }

@@ -20,15 +20,15 @@ class MasterDataCache(val config: MasterDataProcessorConfig) {
   }
 
   def open(datasets: List[Dataset]): Unit = {
-    datasets.map(dataset => {
+    datasets.foreach(dataset => {
       open(dataset)
     })
   }
 
   def open(dataset: Dataset): Unit = {
     if (!datasetPipelineMap.contains(dataset.id)) {
-      val datasetConfig = dataset.datasetConfig
-      val redisConnect = new RedisConnect(datasetConfig.redisDBHost.get, datasetConfig.redisDBPort.get, config.redisConnectionTimeout)
+      val redisConfig = dataset.datasetConfig.cacheConfig.get
+      val redisConnect = new RedisConnect(redisConfig.redisDBHost.get, redisConfig.redisDBPort.get, config.redisConnectionTimeout)
       val pipeline: Pipeline = redisConnect.getConnection(0).pipelined()
       datasetPipelineMap.put(dataset.id, pipeline)
     }
@@ -37,7 +37,7 @@ class MasterDataCache(val config: MasterDataProcessorConfig) {
   def process(dataset: Dataset, eventMap: Map[String, JValue]): (Int, Int) = {
     val pipeline = this.datasetPipelineMap(dataset.id)
     val dataFromCache = getDataFromCache(dataset, eventMap.keySet, pipeline)
-    val insertCount = dataFromCache.filter(f => f._2 == null).size
+    val insertCount = dataFromCache.count(f => f._2 == null)
     val updCount = dataFromCache.size - insertCount
     updateCache(dataset, dataFromCache, eventMap, pipeline)
     (insertCount, updCount)
@@ -45,7 +45,7 @@ class MasterDataCache(val config: MasterDataProcessorConfig) {
 
   private def getDataFromCache(dataset: Dataset, keys: Set[String], pipeline: Pipeline): mutable.Map[String, String] = {
     pipeline.clear()
-    pipeline.select(dataset.datasetConfig.redisDB.get)
+    pipeline.select(dataset.datasetConfig.cacheConfig.get.redisDB.get)
     val responses: mutable.Map[String, Response[String]] = mutable.Map[String, Response[String]]()
     keys.foreach(key => {
       responses.put(key, pipeline.get(key))
@@ -56,7 +56,7 @@ class MasterDataCache(val config: MasterDataProcessorConfig) {
 
   private def updateCache(dataset: Dataset, dataFromCache: mutable.Map[String, String], eventMap: Map[String, JValue], pipeline: Pipeline): Unit = {
     pipeline.clear()
-    pipeline.select(dataset.datasetConfig.redisDB.get)
+    pipeline.select(dataset.datasetConfig.cacheConfig.get.redisDB.get)
     eventMap.foreach(f => {
       val key = f._1
       val newJson = f._2

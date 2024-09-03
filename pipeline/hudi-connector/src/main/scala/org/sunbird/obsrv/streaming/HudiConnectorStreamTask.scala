@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory
 import org.sunbird.obsrv.core.model.Constants
 import org.sunbird.obsrv.core.streaming.{BaseStreamTask, FlinkKafkaConnector}
 import org.sunbird.obsrv.core.util.FlinkUtil
-import org.sunbird.obsrv.functions.RowDataConverterFunction
+import org.sunbird.obsrv.function.RowDataConverterFunction
 import org.sunbird.obsrv.registry.DatasetRegistry
 import org.sunbird.obsrv.util.HudiSchemaParser
 import org.apache.hudi.config.HoodieWriteConfig.SCHEMA_ALLOW_AUTO_EVOLUTION_COLUMN_DROP

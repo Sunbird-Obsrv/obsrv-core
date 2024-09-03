@@ -57,6 +57,10 @@ object JSONUtil {
     root.at(path);
   }
 
+  def getJsonNode(json: String): JsonNode = {
+    mapper.readTree(json);
+  }
+
   private[this] def typeReference[T: Manifest] = new TypeReference[T] {
     override def getType: Type = typeFromManifest(manifest[T])
   }

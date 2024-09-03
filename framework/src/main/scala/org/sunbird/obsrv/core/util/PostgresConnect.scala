@@ -71,41 +71,6 @@ class PostgresConnect(config: PostgresConnectionConfig) {
     // $COVERAGE-ON$
   }
 
-  def prepareStatement(query: String): PreparedStatement = {
-    try {
-      connection.prepareStatement(query)
-    } catch {
-      case ex: SQLException =>
-        ex.printStackTrace()
-        logger.error("PostgresConnect:prepareStatement() - Exception", ex)
-        reset()
-        connection.prepareStatement(query)
-    }
-  }
-
-  def executeUpdate(preparedStatement: PreparedStatement): Int = {
-    try {
-      preparedStatement.executeUpdate()
-    } catch {
-      case ex: SQLException =>
-        ex.printStackTrace()
-        logger.error("PostgresConnect:executeUpdate():PreparedStatement - Exception", ex)
-        reset()
-        preparedStatement.executeUpdate()
-    }
-  }
-
-  def executeQuery(preparedStatement: PreparedStatement): ResultSet = {
-    try {
-      preparedStatement.executeQuery()
-    } catch {
-      case ex: SQLException =>
-        logger.error("PostgresConnect:execute():PreparedStatement - Exception", ex)
-        reset()
-        preparedStatement.executeQuery()
-    }
-  }
-
   def executeQuery(query:String):ResultSet = statement.executeQuery(query)
 }
 

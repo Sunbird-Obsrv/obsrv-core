@@ -104,7 +104,6 @@ class ModelsTestSpec extends FlatSpec with Matchers {
     bsMapConfig.kafkaConsumerProperties()
     bsMapConfig.enableDistributedCheckpointing should be (None)
     bsMapConfig.checkpointingBaseUrl should be (None)
-    bsMapConfig.datasetType() should be ("master-dataset")
 
     val dsk = new DatasetKeySelector()
     dsk.getKey(mutable.Map("dataset" -> "d1".asInstanceOf[AnyRef])) should be ("d1")

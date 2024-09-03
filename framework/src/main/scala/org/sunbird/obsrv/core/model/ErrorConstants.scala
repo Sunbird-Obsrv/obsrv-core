@@ -24,7 +24,7 @@ object ErrorConstants extends Enumeration {
   val JSON_SCHEMA_NOT_FOUND = ErrorInternalValue("ERR_PP_1011", "Json schema not found for the dataset")
   val INVALID_JSON_SCHEMA = ErrorInternalValue("ERR_PP_1012", "Invalid json schema")
   val SCHEMA_VALIDATION_FAILED = ErrorInternalValue("ERR_PP_1013", "Event failed the schema validation")
-  val DENORM_KEY_MISSING = ErrorInternalValue("ERR_DENORM_1014", "No denorm key found or missing data for the specified key")
+  val DENORM_KEY_MISSING = ErrorInternalValue("ERR_DENORM_1014", "No denorm key or transformation expr found or missing data for the specified key")
   val DENORM_KEY_NOT_A_STRING_OR_NUMBER = ErrorInternalValue("ERR_DENORM_1015", "Denorm key value is not a String or Number")
   val DENORM_DATA_NOT_FOUND = ErrorInternalValue("ERR_DENORM_1016", "Denorm data not found for the given key")
   val MISSING_DATASET_CONFIG_KEY = ErrorInternalValue("ERR_MASTER_DATA_1017", "Master dataset configuration key is missing")

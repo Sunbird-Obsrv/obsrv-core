@@ -9,6 +9,7 @@ import org.sunbird.obsrv.core.model.{ErrorConstants, FunctionalError, Producer}
 import org.sunbird.obsrv.core.streaming.Metrics
 import org.sunbird.obsrv.core.util.JSONUtil
 import org.sunbird.obsrv.model.DatasetModels.Dataset
+import org.sunbird.obsrv.model.DatasetType
 import org.sunbird.obsrv.pipeline.task.MasterDataProcessorConfig
 import org.sunbird.obsrv.pipeline.util.MasterDataCache
 import org.sunbird.obsrv.registry.DatasetRegistry
@@ -24,7 +25,7 @@ class MasterDataProcessorFunction(config: MasterDataProcessorConfig) extends Bas
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     masterDataCache = new MasterDataCache(config)
-    masterDataCache.open(DatasetRegistry.getAllDatasets(config.datasetType()))
+    masterDataCache.open(DatasetRegistry.getAllDatasets(Some(DatasetType.master.toString)))
   }
 
   override def close(): Unit = {
@@ -37,13 +38,13 @@ class MasterDataProcessorFunction(config: MasterDataProcessorConfig) extends Bas
   }
 
   override def processWindow(dataset: Dataset, context: ProcessWindowFunction[mutable.Map[String, AnyRef], mutable.Map[String, AnyRef], String, TimeWindow]#Context, elements: List[mutable.Map[String, AnyRef]], metrics: Metrics): Unit = {
-
+    Console.println("dataset.id", dataset.id, dataset.datasetConfig.cacheConfig)
     metrics.incCounter(dataset.id, config.totalEventCount, elements.size.toLong)
     masterDataCache.open(dataset)
     val eventsMap = elements.map(msg => {
       val event = JSONUtil.serialize(msg(config.CONST_EVENT))
       val json = parse(event, useBigIntForLong = false)
-      val node = JSONUtil.getKey(dataset.datasetConfig.key, event)
+      val node = JSONUtil.getKey(dataset.datasetConfig.keysConfig.dataKey.get, event)
       if (node.isMissingNode) {
         markFailure(Some(dataset.id), msg, context, metrics, ErrorConstants.MISSING_DATASET_CONFIG_KEY, Producer.masterdataprocessor, FunctionalError.MissingMasterDatasetKey, datasetType = Some(dataset.datasetType))
       }

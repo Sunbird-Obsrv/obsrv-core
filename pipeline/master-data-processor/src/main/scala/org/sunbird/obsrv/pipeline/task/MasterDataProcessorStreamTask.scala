@@ -12,7 +12,7 @@ import org.sunbird.obsrv.extractor.task.{ExtractorConfig, ExtractorStreamTask}
 import org.sunbird.obsrv.pipeline.function.MasterDataProcessorFunction
 import org.sunbird.obsrv.preprocessor.task.{PipelinePreprocessorConfig, PipelinePreprocessorStreamTask}
 import org.sunbird.obsrv.transformer.task.{TransformerConfig, TransformerStreamTask}
-import org.sunbird.obsrv.router.task.{DruidRouterConfig, DynamicRouterStreamTask}
+import org.sunbird.obsrv.router.task.{DynamicRouterConfig, DynamicRouterStreamTask}
 
 import java.io.File
 import scala.collection.mutable
@@ -51,7 +51,7 @@ class MasterDataProcessorStreamTask(config: Config, masterDataConfig: MasterData
     val preprocessorTask = new PipelinePreprocessorStreamTask(new PipelinePreprocessorConfig(config), kafkaConnector)
     val denormalizerTask = new DenormalizerStreamTask(new DenormalizerConfig(config), kafkaConnector)
     val transformerTask = new TransformerStreamTask(new TransformerConfig(config), kafkaConnector)
-    val routerTask = new DynamicRouterStreamTask(new DruidRouterConfig(config), kafkaConnector)
+    val routerTask = new DynamicRouterStreamTask(new DynamicRouterConfig(config), kafkaConnector)
 
     val transformedStream = transformerTask.processStream(
       denormalizerTask.processStream(

@@ -1,11 +1,14 @@
 package org.sunbird.obsrv.denormalizer.util
 
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.MissingNode
 import org.sunbird.obsrv.core.cache.RedisConnect
 import org.sunbird.obsrv.core.model.ErrorConstants
 import org.sunbird.obsrv.core.model.ErrorConstants.Error
 import org.sunbird.obsrv.core.util.{JSONUtil, Util}
 import org.sunbird.obsrv.denormalizer.task.DenormalizerConfig
-import org.sunbird.obsrv.model.DatasetModels.{Dataset, DenormFieldConfig}
+import org.sunbird.obsrv.model.DatasetModels.{Dataset, DenormFieldConfig, TransformationFunction}
+import org.sunbird.obsrv.transformer.types.JSONAtaTransformer
 import redis.clients.jedis.{Pipeline, Response}
 
 import scala.collection.mutable
@@ -75,7 +78,7 @@ class DenormCache(val config: DenormalizerConfig) {
   }
 
   private def extractField(fieldConfig: DenormFieldConfig, eventStr: String): DenormFieldStatus = {
-    val denormFieldNode = JSONUtil.getKey(fieldConfig.denormKey, eventStr)
+    val denormFieldNode = getDenormFieldValue(fieldConfig, eventStr)
     if (denormFieldNode.isMissingNode) {
       DenormFieldStatus("", success = false, Some(ErrorConstants.DENORM_KEY_MISSING))
     } else {
@@ -84,6 +87,16 @@ class DenormCache(val config: DenormalizerConfig) {
       } else {
         DenormFieldStatus("", success = false, Some(ErrorConstants.DENORM_KEY_NOT_A_STRING_OR_NUMBER))
       }
+    }
+  }
+
+  private def getDenormFieldValue(fieldConfig: DenormFieldConfig, eventStr: String): JsonNode = {
+    if(fieldConfig.denormKey.isDefined) {
+      JSONUtil.getKey(fieldConfig.denormKey.get, eventStr)
+    } else if(fieldConfig.jsonAtaExpr.isDefined) {
+      JSONAtaTransformer.evaluate(JSONUtil.getJsonNode(eventStr), TransformationFunction("jsonata", None, fieldConfig.jsonAtaExpr.get))
+    } else {
+      MissingNode.getInstance()
     }
   }
 

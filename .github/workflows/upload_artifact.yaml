@@ -56,7 +56,7 @@ jobs:
           - image: "denormalizer"
           - image: "transformer"
           - image: "druid-router"
-          - image: "pipeline-merged"
+          - image: "unified-pipeline"
           - image: "master-data-processor"
     steps:
       - name: Get Tag Name

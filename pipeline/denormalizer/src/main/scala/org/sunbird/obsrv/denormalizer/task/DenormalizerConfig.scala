@@ -16,7 +16,6 @@ class DenormalizerConfig(override val config: Config) extends BaseJobConfig[muta
   implicit val anyTypeInfo: TypeInformation[String] = TypeExtractor.getForClass(classOf[String])
 
   // Kafka Topics Configuration
-  val kafkaInputTopic: String = config.getString("kafka.input.topic")
   val denormOutputTopic: String = config.getString("kafka.output.denorm.topic")
 
   // Windows
@@ -41,7 +40,7 @@ class DenormalizerConfig(override val config: Config) extends BaseJobConfig[muta
   // Functions
   val denormalizationFunction = "DenormalizationFunction"
 
-  override def inputTopic(): String = kafkaInputTopic
+  override def inputTopic(): String = config.getString("kafka.input.topic")
   override def inputConsumer(): String = denormalizationConsumer
   override def successTag(): OutputTag[mutable.Map[String, AnyRef]] = denormEventsTag
   override def failedEventsOutputTag(): OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]]("failed-events")

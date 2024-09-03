@@ -32,7 +32,7 @@ class EventValidationFunction(config: PipelinePreprocessorConfig)(implicit val e
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     schemaValidator = new SchemaValidator()
-    schemaValidator.loadDataSchemas(DatasetRegistry.getAllDatasets(config.datasetType()))
+    schemaValidator.loadDataSchemas(DatasetRegistry.getAllDatasets(None))
   }
 
   override def close(): Unit = {

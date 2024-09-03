@@ -20,10 +20,11 @@
 		<module>preprocessor</module>
 		<module>denormalizer</module>
 		<module>transformer</module>
-		<module>druid-router</module>
-		<module>pipeline-merged</module>
+		<module>dataset-router</module>
+		<module>unified-pipeline</module>
 		<module>master-data-processor</module>
 		<module>hudi-connector</module>
+		<module>cache-indexer</module>
 	</modules>
 
 	<properties>

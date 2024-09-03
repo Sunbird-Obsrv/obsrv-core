@@ -38,6 +38,13 @@ abstract class BaseStreamTask[T] extends BaseStreamTaskSink[T] {
       .rebalance()
   }
 
+  def getTopicMapDataStream(env: StreamExecutionEnvironment, config: BaseJobConfig[T], kafkaTopics: List[String],
+                       consumerSourceName: String, kafkaConnector: FlinkKafkaConnector): DataStream[mutable.Map[String, AnyRef]] = {
+    env.fromSource(kafkaConnector.kafkaTopicMapSource(kafkaTopics), WatermarkStrategy.noWatermarks[mutable.Map[String, AnyRef]](), consumerSourceName)
+      .uid(consumerSourceName).setParallelism(config.kafkaConsumerParallelism)
+      .rebalance()
+  }
+
   def getStringDataStream(env: StreamExecutionEnvironment, config: BaseJobConfig[T], kafkaConnector: FlinkKafkaConnector): DataStream[String] = {
     env.fromSource(kafkaConnector.kafkaStringSource(config.inputTopic()), WatermarkStrategy.noWatermarks[String](), config.inputConsumer())
       .uid(config.inputConsumer()).setParallelism(config.kafkaConsumerParallelism)

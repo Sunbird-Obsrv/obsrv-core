@@ -64,9 +64,10 @@ class MasterDataProcessorStreamTaskTestSpec extends BaseSpecWithDatasetRegistry 
   }
 
   private def insertTestData(postgresConnect: PostgresConnect): Unit = {
-    postgresConnect.execute("insert into datasets(id, type, extraction_config, router_config, dataset_config, status, created_by, updated_by, created_date, updated_date) values ('d3', 'master-dataset', '{\"is_batch_event\": true, \"extraction_key\": \"events\"}', '{\"topic\":\"d3-events\"}', '{\"data_key\":\"code\",\"timestamp_key\":\"date\",\"entry_topic\":\"masterdata.ingest\",\"redis_db_host\":\"localhost\",\"redis_db_port\":"+masterDataConfig.redisPort+",\"redis_db\":3}', 'Live', 'System', 'System', now(), now());")
-    postgresConnect.execute("insert into datasets(id, type, router_config, dataset_config, status, created_by, updated_by, created_date, updated_date) values ('d4', 'master-dataset', '{\"topic\":\"d4-events\"}', '{\"data_key\":\"code\",\"timestamp_key\":\"date\",\"entry_topic\":\"masterdata-ingest\",\"redis_db_host\":\"localhost\",\"redis_db_port\":"+masterDataConfig.redisPort+",\"redis_db\":4}', 'Live', 'System', 'System', now(), now());")
-    postgresConnect.execute("insert into datasets(id, type, router_config, dataset_config, status, created_by, updated_by, created_date, updated_date) values ('d5', 'master-dataset', '{\"topic\":\"d4-events\"}', '{\"data_key\":\"code\",\"timestamp_key\":\"date\",\"entry_topic\":\"masterdata-ingest\",\"redis_db_host\":\"localhost\",\"redis_db_port\":"+masterDataConfig.redisPort+",\"redis_db\":4}', 'Live', 'System', 'System', now(), now());")
+    postgresConnect.execute("INSERT INTO datasets (id, type, validation_config, extraction_config, data_schema, router_config, dataset_config, status, api_version, entry_topic, created_by, updated_by, created_date, updated_date) VALUES ('d3', 'master', '{\"validate\":true,\"mode\":\"Strict\"}', '{\"is_batch_event\":true,\"extraction_key\":\"events\"}', '{\"type\":\"object\",\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"properties\":{\"code\":{\"type\":\"string\"},\"manufacturer\":{\"type\":\"string\"}, \"model\":{\"type\":\"string\"},\"variant\":{\"type\":\"string\"},\"modelYear\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"},\"currencyCode\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"},\"transmission\":{\"type\":\"string\"},\"fuel\":{\"type\":\"string\"},\"dealer\":{\"type\":\"object\",\"properties\":{\"email\":{\"type\":\"string\"},\"locationId\":{\"type\":\"string\"}}}}}', '{\"topic\":\"d3-events\"}', '{\"data_key\":\"code\",\"timestamp_key\":\"date\",\"entry_topic\":\"local.masterdata.ingest\",\"redis_db\":3,\"redis_db_host\":\"localhost\",\"redis_db_port\":"+masterDataConfig.redisPort+"}', 'Live', 'v1', 'local.masterdata.ingest', 'System', 'System',  now(), now());")
+    postgresConnect.execute("INSERT INTO datasets (id, type, validation_config, data_schema, router_config, dataset_config, status, api_version, entry_topic, created_by, updated_by, created_date, updated_date) VALUES ('d4', 'master', '{\"validate\":true,\"mode\":\"Strict\"}', '{\"type\":\"object\",\"$schema\":\"http://json-schema.org/draft-04/schema#\",\"properties\":{\"code\":{\"type\":\"string\"},\"manufacturer\":{\"type\":\"string\"},\"model\":{\"type\":\"string\"},\"variant\":{\"type\":\"string\"},\"modelYear\":{\"type\":\"string\"},\"price\":{\"type\":\"string\"},\"currencyCode\":{\"type\":\"string\"},\"currency\":{\"type\":\"string\"},\"seatingCapacity\": {\"type\": \"integer\"}, \"safety\": {\"type\": \"string\"},\"transmission\":{\"type\":\"string\"},\"fuel\":{\"type\":\"string\"},\"dealer\":{\"type\":\"object\",\"properties\":{\"email\":{\"type\":\"string\"},\"locationId\":{\"type\":\"string\"}}}}}', '{\"topic\":\"d34-events\"}', '{\"data_key\":\"code\",\"timestamp_key\":\"date\",\"entry_topic\":\"local.masterdata.ingest\",\"redis_db\":4,\"redis_db_host\":\"localhost\",\"redis_db_port\":"+masterDataConfig.redisPort+"}', 'Live', 'v1', 'local.masterdata.ingest', 'System', 'System',  now(), now());")
+    postgresConnect.execute("INSERT INTO dataset_transformations (id, dataset_id, field_key, transformation_function, created_by, updated_by, created_date, updated_date) VALUES ('tf3', 'd3', 'dealer.email', '{\"type\":\"mask\",\"expr\":\"dealer.email\"}', 'System', 'System', now(), now());")
+    postgresConnect.execute("INSERT INTO dataset_transformations (id, dataset_id, field_key, transformation_function, created_by, updated_by, created_date, updated_date) VALUES ('tf4', 'd3', 'dealer.locationId', '{\"type\":\"encrypt\",\"expr\":\"dealer.locationId\"}', 'System', 'System', now(), now());")
   }
 
   override def afterAll(): Unit = {
@@ -90,18 +91,19 @@ class MasterDataProcessorStreamTaskTestSpec extends BaseSpecWithDatasetRegistry 
   }
 
   "MasterDataProcessorStreamTaskTestSpec" should "validate the entire master data pipeline" in {
-
+    
     implicit val env: StreamExecutionEnvironment = FlinkUtil.getExecutionContext(masterDataConfig)
     val task = new MasterDataProcessorStreamTask(config, masterDataConfig, kafkaConnector)
     task.process(env)
     Future {
       env.execute(masterDataConfig.jobName)
+      Thread.sleep(5000)
     }
 
-    val sysEvents = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.output.system.event.topic"), 8, timeout = 30.seconds)
-    sysEvents.size should be(8)
+    val input = EmbeddedKafka.consumeNumberMessagesFrom[String](config.getString("kafka.output.system.event.topic"), 7, timeout = 30.seconds)
+    input.size should be (7)
 
-    sysEvents.foreach(se => {
+    input.foreach(se => {
       val event = JSONUtil.deserialize[SystemEvent](se)
       val error = event.data.error
       if (event.ctx.dataset.getOrElse("ALL").equals("ALL"))
@@ -115,11 +117,8 @@ class MasterDataProcessorStreamTaskTestSpec extends BaseSpecWithDatasetRegistry 
         }
       }
       else
-        event.ctx.dataset_type should be(Some("master-dataset"))
+        event.ctx.dataset_type should be(Some("master"))
     })
-
-    val failedEvents = EmbeddedKafka.consumeNumberMessagesFrom[String](masterDataConfig.kafkaFailedTopic, 1, timeout = 30.seconds)
-    failedEvents.size should be(1)
 
     val mutableMetricsMap = mutable.Map[String, Long]();
     BaseMetricsReporter.gaugeMetrics.toMap.mapValues(f => f.getValue()).map(f => mutableMetricsMap.put(f._1, f._2))
@@ -143,16 +142,15 @@ class MasterDataProcessorStreamTaskTestSpec extends BaseSpecWithDatasetRegistry 
     val redisConnection = new RedisConnect(masterDataConfig.redisHost, masterDataConfig.redisPort, masterDataConfig.redisConnectionTimeout)
     val jedis1 = redisConnection.getConnection(3)
     val event1 = jedis1.get("HYUN-CRE-D6")
-    event1 should be ("""{"model":"Creta","price":"2200000","variant":"SX(O)","fuel":"Diesel","code":"HYUN-CRE-D6","currencyCode":"INR","currency":"Indian Rupee","manufacturer":"Hyundai","modelYear":"2023","transmission":"automatic","seatingCapacity":5,"safety":"3 Star (Global NCAP)"}""")
+    event1 should be ("""{"dealer":{"email":"jo*****e@example.com","locationId":"ym4iT6lWXt+Y2gEdBldeiw=="},"model":"Creta","price":"2200000","variant":"SX(O)","fuel":"Diesel","code":"HYUN-CRE-D6","currencyCode":"INR","currency":"Indian Rupee","manufacturer":"Hyundai","modelYear":"2023","transmission":"automatic","seatingCapacity":5,"safety":"3 Star (Global NCAP)"}""")
     val event3 = jedis1.get("HYUN-TUC-D6")
-    event3 should be ("""{"model":"Tucson","price":"4000000","variant":"Signature","fuel":"Diesel","code":"HYUN-TUC-D6","currencyCode":"INR","currency":"Indian Rupee","manufacturer":"Hyundai","modelYear":"2023","transmission":"automatic"}""")
+    event3 should be ("""{"dealer":{"email":"ad*******n@gmail.com","locationId":"kJ7mH49gjWHeoM1w+ex9kQ=="},"model":"Tucson","price":"4000000","variant":"Signature","fuel":"Diesel","code":"HYUN-TUC-D6","currencyCode":"INR","currency":"Indian Rupee","manufacturer":"Hyundai","modelYear":"2023","transmission":"automatic"}""")
     jedis1.close()
 
     val jedis2 = redisConnection.getConnection(4)
     val event2 = jedis2.get("JEEP-CP-D3")
     event2 should be ("""{"model":"Compass","price":"3800000","variant":"Model S (O) Diesel 4x4 AT","fuel":"Diesel","seatingCapacity":5,"code":"JEEP-CP-D3","currencyCode":"INR","currency":"Indian Rupee","manufacturer":"Jeep","safety":"5 Star (Euro NCAP)","modelYear":"2023","transmission":"automatic"}""")
     jedis2.close()
-    
   }
 
 

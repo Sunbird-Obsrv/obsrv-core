@@ -17,16 +17,22 @@ class TransformerConfig(override val config: Config) extends BaseJobConfig[mutab
   // Metric List
   val totalEventCount = "transform-total-count"
   val transformSuccessCount = "transform-success-count"
+  val transformPartialCount = "transform-partial-count"
   val transformFailedCount = "transform-failed-count"
   val transformSkippedCount = "transform-skipped-count"
 
+  private val kafkaInputTopic: String = config.getString("kafka.input.topic")
   val kafkaTransformTopic: String = config.getString("kafka.output.transform.topic")
+  val kafkaTransformFailedTopic: String = config.getString("kafka.output.transform.failed.topic")
 
   val transformerFunction = "transformer-function"
   val transformerProducer = "transformer-producer"
+  val transformerFailedProducer = "transformer-failed-producer"
 
-  private val TRANSFORMER_OUTPUT_TAG = "transformed-events"
-  val transformerOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](TRANSFORMER_OUTPUT_TAG)
+  private val TRANSFORMER_EVENTS = "transformed-events"
+  private val TRANSFORMER_FAILED_EVENTS = "transformed_failed-events"
+  val transformerOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](TRANSFORMER_EVENTS)
+  val transformerFailedOutputTag: OutputTag[mutable.Map[String, AnyRef]] = OutputTag[mutable.Map[String, AnyRef]](TRANSFORMER_FAILED_EVENTS)
 
   override def inputTopic(): String = config.getString("kafka.input.topic")
 

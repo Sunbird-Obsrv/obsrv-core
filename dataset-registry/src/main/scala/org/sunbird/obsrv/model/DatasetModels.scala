@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.core.`type`.TypeReference
 import com.fasterxml.jackson.module.scala.JsonScalaEnumeration
 import org.sunbird.obsrv.core.model.SystemConfig
-import org.sunbird.obsrv.model.DatasetStatus.DatasetStatus
+import org.sunbird.obsrv.model.DatasetStatus.{DatasetStatus, Value}
 import org.sunbird.obsrv.model.TransformMode.TransformMode
 import org.sunbird.obsrv.model.ValidationMode.ValidationMode
 
@@ -25,25 +25,42 @@ object DatasetModels {
   case class ValidationConfig(@JsonProperty("validate") validate: Option[Boolean] = Some(true),
                               @JsonProperty("mode") @JsonScalaEnumeration(classOf[ValidationModeType]) mode: Option[ValidationMode])
 
-  case class DenormFieldConfig(@JsonProperty("denorm_key") denormKey: String, @JsonProperty("redis_db") redisDB: Int,
-                               @JsonProperty("denorm_out_field") denormOutField: String)
+  case class DenormFieldConfig(@JsonProperty("denorm_key") denormKey: Option[String], @JsonProperty("redis_db") redisDB: Int,
+                               @JsonProperty("denorm_out_field") denormOutField: String, @JsonProperty("jsonata_expr") jsonAtaExpr: Option[String])
 
   case class DenormConfig(@JsonProperty("redis_db_host") redisDBHost: String, @JsonProperty("redis_db_port") redisDBPort: Int,
                           @JsonProperty("denorm_fields") denormFields: List[DenormFieldConfig])
 
   case class RouterConfig(@JsonProperty("topic") topic: String)
 
-  case class DatasetConfig(@JsonProperty("data_key") key: String, @JsonProperty("timestamp_key") tsKey: String, @JsonProperty("entry_topic") entryTopic: String,
-                           @JsonProperty("exclude_fields") excludeFields: Option[List[String]] = None, @JsonProperty("redis_db_host") redisDBHost: Option[String] = None,
-                           @JsonProperty("redis_db_port") redisDBPort: Option[Int] = None, @JsonProperty("redis_db") redisDB: Option[Int] = None,
-                           @JsonProperty("index_data") indexData: Option[Boolean] = None, @JsonProperty("timestamp_format") tsFormat: Option[String] = None,
-                           @JsonProperty("dataset_tz") datasetTimezone: Option[String] = None)
+  case class IndexingConfig(@JsonProperty("olap_store_enabled") olapStoreEnabled: Boolean, @JsonProperty("lakehouse_enabled") lakehouseEnabled: Boolean,
+                            @JsonProperty("cache_enabled") cacheEnabled: Boolean)
+
+  case class KeysConfig(@JsonProperty("data_key") dataKey: Option[String], @JsonProperty("partition_key") partitionKey: Option[String],
+                        @JsonProperty("timestamp_key") tsKey: Option[String], @JsonProperty("timestamp_format") tsFormat: Option[String])
+
+  case class CacheConfig(@JsonProperty("redis_db_host") redisDBHost: Option[String], @JsonProperty("redis_db_port") redisDBPort: Option[Int],
+                         @JsonProperty("redis_db") redisDB: Option[Int])
+
+  case class DatasetConfigV1(@JsonProperty("data_key") key: String, @JsonProperty("timestamp_key") tsKey: String, @JsonProperty("entry_topic") entryTopic: String,
+                             @JsonProperty("exclude_fields") excludeFields: Option[List[String]] = None, @JsonProperty("redis_db_host") redisDBHost: Option[String] = None,
+                             @JsonProperty("redis_db_port") redisDBPort: Option[Int] = None, @JsonProperty("redis_db") redisDB: Option[Int] = None,
+                             @JsonProperty("index_data") indexData: Option[Boolean] = None, @JsonProperty("timestamp_format") tsFormat: Option[String] = None,
+                             @JsonProperty("dataset_tz") datasetTimezone: Option[String] = None)
+
+  case class DatasetConfig(@JsonProperty("indexing_config") indexingConfig: IndexingConfig,
+                           @JsonProperty("keys_config") keysConfig: KeysConfig,
+                           @JsonProperty("exclude_fields") excludeFields: Option[List[String]] = None,
+                           @JsonProperty("dataset_tz") datasetTimezone: Option[String] = None,
+                           @JsonProperty("cache_config") cacheConfig: Option[CacheConfig] = None)
 
   case class Dataset(@JsonProperty("id") id: String, @JsonProperty("type") datasetType: String, @JsonProperty("extraction_config") extractionConfig: Option[ExtractionConfig],
                      @JsonProperty("dedup_config") dedupConfig: Option[DedupConfig], @JsonProperty("validation_config") validationConfig: Option[ValidationConfig],
                      @JsonProperty("data_schema") jsonSchema: Option[String], @JsonProperty("denorm_config") denormConfig: Option[DenormConfig],
-                     @JsonProperty("router_config") routerConfig: RouterConfig, datasetConfig: DatasetConfig, @JsonProperty("status") @JsonScalaEnumeration(classOf[DatasetStatusType]) status: DatasetStatus,
-                     @JsonProperty("tags") tags: Option[Array[String]] = None, @JsonProperty("data_version") dataVersion: Option[Int] = None)
+                     @JsonProperty("router_config") routerConfig: RouterConfig, datasetConfig: DatasetConfig,
+                     @JsonProperty("status") @JsonScalaEnumeration(classOf[DatasetStatusType]) status: DatasetStatus,
+                     @JsonProperty("entry_topic") entryTopic: String, @JsonProperty("tags") tags: Option[Array[String]] = None,
+                     @JsonProperty("data_version") dataVersion: Option[Int] = None, @JsonProperty("api_version") apiVersion: Option[String] = None)
 
   case class Condition(@JsonProperty("type") `type`: String, @JsonProperty("expr") expr: String)
 
@@ -51,7 +68,7 @@ object DatasetModels {
 
   case class DatasetTransformation(@JsonProperty("id") id: String, @JsonProperty("dataset_id") datasetId: String,
                                    @JsonProperty("field_key") fieldKey: String, @JsonProperty("transformation_function") transformationFunction: TransformationFunction,
-                                   @JsonProperty("status") status: String, @JsonProperty("mode") @JsonScalaEnumeration(classOf[TransformModeType]) mode: Option[TransformMode] = Some(TransformMode.Strict))
+                                   @JsonProperty("mode") @JsonScalaEnumeration(classOf[TransformModeType]) mode: Option[TransformMode] = Some(TransformMode.Strict))
 
   case class ConnectorConfig(@JsonProperty("kafkaBrokers") kafkaBrokers: String, @JsonProperty("topic") topic: String, @JsonProperty("type") databaseType: String,
                              @JsonProperty("connection") connection: Connection, @JsonProperty("tableName") tableName: String, @JsonProperty("databaseName") databaseName: String,
@@ -94,4 +111,10 @@ class DatasetStatusType extends TypeReference[DatasetStatus.type]
 object DatasetStatus extends Enumeration {
   type DatasetStatus = Value
   val Draft, Publish, Live, Retired, Purged = Value
+}
+
+class DatasetTypeType extends TypeReference[DatasetType.type]
+object DatasetType extends Enumeration {
+  type DatasetType = Value
+  val event, transaction, master = Value
 }

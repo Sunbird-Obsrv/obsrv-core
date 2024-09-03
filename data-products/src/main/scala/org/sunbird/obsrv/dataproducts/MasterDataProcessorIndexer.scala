@@ -69,7 +69,8 @@ object MasterDataProcessorIndexer {
     logger.info(s"createDataFile() | START | dataset=${dataset.id} ")
     import spark.implicits._
     val readWriteConf = ReadWriteConfig(scanCount = config.getInt("redis.scan.count"), maxPipelineSize = config.getInt("redis.max.pipeline.size"))
-    val redisConfig = new RedisConfig(initialHost = RedisEndpoint(host = dataset.datasetConfig.redisDBHost.get, port = dataset.datasetConfig.redisDBPort.get, dbNum = dataset.datasetConfig.redisDB.get))
+    val cacheConfig = dataset.datasetConfig.cacheConfig.get
+    val redisConfig = new RedisConfig(initialHost = RedisEndpoint(host = cacheConfig.redisDBHost.get, port = cacheConfig.redisDBPort.get, dbNum = cacheConfig.redisDB.get))
     val ts: Long = new DateTime(DateTimeZone.UTC).withTimeAtStartOfDay().getMillis
     val rdd = spark.sparkContext.fromRedisKV("*")(redisConfig = redisConfig, readWriteConfig = readWriteConf).map(
       f => CommonUtil.processEvent(f._2, ts)
@@ -83,9 +84,9 @@ object MasterDataProcessorIndexer {
   }
 
   private def getDatasets(): List[Dataset] = {
-    val datasets: List[Dataset] = DatasetRegistry.getAllDatasets("master-dataset")
+    val datasets: List[Dataset] = DatasetRegistry.getAllDatasets(Some("master"))
     datasets.filter(dataset => {
-      dataset.datasetConfig.indexData.nonEmpty && dataset.datasetConfig.indexData.get && dataset.status == DatasetStatus.Live
+      dataset.datasetConfig.indexingConfig.olapStoreEnabled && dataset.status == DatasetStatus.Live
     })
   }
 

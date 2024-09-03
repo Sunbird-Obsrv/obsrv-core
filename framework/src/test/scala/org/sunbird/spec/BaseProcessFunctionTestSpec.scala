@@ -142,7 +142,6 @@ class BaseProcessFunctionTestSpec extends BaseSpecWithPostgres with Matchers {
     val metrics = Metrics(mutable.Map("test" -> new ConcurrentHashMap[String, AtomicLong]()))
     metrics.reset("test1", "m1")
 
-    bsConfig.datasetType() should be ("dataset")
   }
 
   "TestBaseStreamTask" should "validate the getMapDataStream method" in {

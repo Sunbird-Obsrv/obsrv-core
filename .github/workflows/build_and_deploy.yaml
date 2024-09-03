@@ -27,17 +27,16 @@ jobs:
             target: "transformer-image"
           - image: "druid-router"
             target: "router-image"
-          - image: "merged-pipeline"
-            target: "merged-image"
+          - image: "unified-pipeline"
+            target: "unified-image"
           - image: "master-data-processor"
             target: "master-data-processor-image"
           - image: "lakehouse-connector"
             target: "lakehouse-connector-image"
-    steps:
-      - uses: actions/checkout@v4
+          - image: "cache-indexer"
+            target: "cache-indexer-image"
         with:
           fetch-depth: 0
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -97,7 +96,7 @@ jobs:
         run: |
           cd deploy/terraform/aws
           terragrunt init
-          terragrunt apply -auto-approve -var merged_pipeline_enabled={{ vars.MERGED_PIPELINE || 'true' }} --replace='module.flink.helm_release.flink' \
+          terragrunt apply -auto-approve -var unified_pipeline_enabled={{ vars.MERGED_PIPELINE || 'true' }} --replace='module.flink.helm_release.flink' \
           -var flink_image_tag=${{ github.ref_name }}
 
   azure-deploy:

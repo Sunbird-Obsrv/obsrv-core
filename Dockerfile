@@ -2,6 +2,7 @@ FROM --platform=linux/x86_64 maven:3.9.4-eclipse-temurin-11-focal AS build-core
 COPY . /app
 RUN mvn clean install -DskipTests -f /app/framework/pom.xml
 RUN mvn clean install -DskipTests -f /app/dataset-registry/pom.xml
+RUN mvn clean install -DskipTests -f /app/transformation-sdk/pom.xml
 
 FROM --platform=linux/x86_64 maven:3.9.4-eclipse-temurin-11-focal AS build-pipeline
 COPY --from=build-core /root/.m2 /root/.m2
@@ -28,9 +29,9 @@ FROM --platform=linux/x86_64 sanketikahub/flink:1.15.2-scala_2.12-jdk-11 as rout
 USER flink
 COPY --from=build-pipeline /app/pipeline/druid-router/target/druid-router-1.0.0.jar $FLINK_HOME/lib/
 
-FROM --platform=linux/x86_64 sanketikahub/flink:1.15.2-scala_2.12-jdk-11 as merged-image
+FROM --platform=linux/x86_64 sanketikahub/flink:1.15.2-scala_2.12-jdk-11 as unified-image
 USER flink
-COPY --from=build-pipeline /app/pipeline/pipeline-merged/target/pipeline-merged-1.0.0.jar $FLINK_HOME/lib/
+COPY --from=build-pipeline /app/pipeline/unified-pipeline/target/unified-pipeline-1.0.0.jar $FLINK_HOME/lib/
 
 FROM --platform=linux/x86_64 sanketikahub/flink:1.15.2-scala_2.12-jdk-11 as master-data-processor-image
 USER flink
@@ -40,3 +41,7 @@ FROM --platform=linux/x86_64 sanketikahub/flink:1.15.0-scala_2.12-lakehouse as l
 USER flink
 RUN mkdir $FLINK_HOME/custom-lib
 COPY ./pipeline/hudi-connector/target/hudi-connector-1.0.0.jar $FLINK_HOME/custom-lib
+
+FROM --platform=linux/x86_64 sanketikahub/flink:1.15.2-scala_2.12-jdk-11 as cache-indexer-image
+USER flink
+COPY --from=build-pipeline /app/pipeline/cache-indexer/target/cache-indexer-1.0.0.jar $FLINK_HOME/lib

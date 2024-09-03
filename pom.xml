@@ -18,6 +18,7 @@
 	<modules>
 		<module>framework</module>
 		<module>dataset-registry</module>
+		<module>transformation-sdk</module>
 		<module>pipeline</module>
 		<module>data-products</module>
 	</modules>

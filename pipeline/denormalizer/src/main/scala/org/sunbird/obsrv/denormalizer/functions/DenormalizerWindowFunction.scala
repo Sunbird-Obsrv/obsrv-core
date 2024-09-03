@@ -33,7 +33,7 @@ class DenormalizerWindowFunction(config: DenormalizerConfig)(implicit val eventT
   override def open(parameters: Configuration): Unit = {
     super.open(parameters)
     denormCache = new DenormCache(config)
-    denormCache.open(DatasetRegistry.getAllDatasets(config.datasetType()))
+    denormCache.open(DatasetRegistry.getAllDatasets(None))
   }
 
   override def close(): Unit = {

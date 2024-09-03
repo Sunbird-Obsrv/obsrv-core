@@ -64,7 +64,7 @@
         </dependency>
         <dependency>
             <groupId>org.sunbird.obsrv.pipeline</groupId>
-            <artifactId>druid-router</artifactId>
+            <artifactId>dataset-router</artifactId>
             <version>1.0.0</version>
         </dependency>
         <dependency>

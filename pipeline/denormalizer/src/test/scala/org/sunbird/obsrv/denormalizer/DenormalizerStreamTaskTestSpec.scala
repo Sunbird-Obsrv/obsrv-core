@@ -71,7 +71,7 @@ class DenormalizerStreamTaskTestSpec extends BaseSpecWithDatasetRegistry {
   }
 
   private def insertTestData(postgresConnect: PostgresConnect): Unit = {
-    postgresConnect.execute("update datasets set denorm_config = '" + s"""{"redis_db_host":"localhost","redis_db_port":$redisPort,"denorm_fields":[{"denorm_key":"vehicleCode","redis_db":3,"denorm_out_field":"vehicle_data"},{"denorm_key":"dealer.dealerCode","redis_db":4,"denorm_out_field":"dealer_data"}]}""" + "' where id='d1';")
+    postgresConnect.execute("update datasets set denorm_config = '" + s"""{"redis_db_host":"localhost","redis_db_port":$redisPort,"denorm_fields":[{"denorm_key":"vehicleCode","redis_db":3,"denorm_out_field":"vehicle_data"},{"jsonata_expr":"$$.dealer.dealerCode","redis_db":4,"denorm_out_field":"dealer_data"}]}""" + "' where id='d1';")
     val redisConnection = new RedisConnect(denormConfig.redisHost, denormConfig.redisPort, denormConfig.redisConnectionTimeout)
     redisConnection.getConnection(3).set("HYUN-CRE-D6", EventFixture.DENORM_DATA_1)
     redisConnection.getConnection(4).set("D123", EventFixture.DENORM_DATA_2)
@@ -118,8 +118,8 @@ class DenormalizerStreamTaskTestSpec extends BaseSpecWithDatasetRegistry {
     val denormCache = new DenormCache(denormConfig)
     noException should be thrownBy {
       denormCache.open(Dataset(id = "d123", datasetType = "dataset", extractionConfig = None, dedupConfig = None, validationConfig = None, jsonSchema = None,
-        denormConfig = Some(DenormConfig(redisDBHost = "localhost", redisDBPort = redisPort, denormFields = List(DenormFieldConfig(denormKey = "vehicleCode", redisDB = 3, denormOutField = "vehicle_data")))), routerConfig = RouterConfig(""),
-        datasetConfig = DatasetConfig(key = "id", tsKey = "date", entryTopic = "ingest"), status = DatasetStatus.Live))
+        denormConfig = Some(DenormConfig(redisDBHost = "localhost", redisDBPort = redisPort, denormFields = List(DenormFieldConfig(denormKey = Some("vehicleCode"), redisDB = 3, denormOutField = "vehicle_data", jsonAtaExpr = None)))), routerConfig = RouterConfig(""),
+        datasetConfig = DatasetConfig(IndexingConfig(olapStoreEnabled = false, lakehouseEnabled = false, cacheEnabled = false), KeysConfig(Some("id"), None, Some("date"), None)), status = DatasetStatus.Live, "ingest"))
     }
   }
 
